@@ -1,0 +1,29 @@
+[
+  {
+    "skupina": "skupina 1",
+    "moznosti": [
+      { "id": "group1", "meno": "Celá skupina", "telefon": null },
+      { "id": "0", "meno": "Ing. Vladimír Melikant", "telefon": "0911580860", "coz": "4007925" },
+      { "id": "1", "meno": "Mgr. Denis Mičovský", "telefon": "0911133488", "coz": "2744824" },
+      { "id": "2", "meno": "Ing. Slivia Sklenárová", "telefon": "0902368479", "coz": "2739587" }
+    ]
+  },
+  {
+    "skupina": "skupina 2",
+    "moznosti": [
+      { "id": "group2", "meno": "Celá skupina", "telefon": null },
+      { "id": "3", "meno": "Mgr. Mário Banič", "telefon": "0903605647", "coz": "2740901" },
+      { "id": "4", "meno": "Mgr. Maroš Plieštik", "telefon": "0910904277", "coz": "2723878" },
+      { "id": "5", "meno": "Ing. Anetta Vereš Pšanecká", "telefon": "0907824736", "coz": "2725788" }
+    ]
+  },
+  {
+    "skupina": "skupina 3",
+    "moznosti": [
+      { "id": "group3", "meno": "Celá skupina", "telefon": null },
+      { "id": "6", "meno": "Mgr. Juraj Tuhársky", "telefon": "0903553116", "coz": "4000955" },
+      { "id": "7", "meno": "Mgr. Ján Kubaliak", "telefon": "0903805416", "coz": "4000883" },
+      { "id": "8", "meno": "Mgr. Miriam Galková", "telefon": "0904394007", "coz": "4006627" }
+    ]
+  }
+]

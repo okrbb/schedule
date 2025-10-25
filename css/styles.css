@@ -1,0 +1,255 @@
+:root {
+  --primary-color: #ecf0f1;
+  --secondary-color: #2c3e50;
+  --accent-color: #3498db;
+  --text-color: #ecf0f1;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s ease;
+  --hover-color: #2980b9;
+  --font-family: 'Poppins', sans-serif; /* Changed font */
+}
+
+body {
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.top-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  box-shadow: var(--box-shadow);
+}
+
+.selectors {
+  display: flex;
+  flex-wrap: wrap; /* Pridané pre lepšiu odozvu */
+  gap: 10px;
+}
+
+.selMonth, .selYear, .selPeople {
+  padding: 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid #ccc;
+  transition: var(--transition);
+}
+
+.selMonth:hover, .selYear:hover, .selPeople:hover {
+  border-color: var(--accent-color);
+}
+
+.employee-select-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shbtn, #exportButton, #saveButton { /* Pridané #saveButton sem */
+  background-color: var(--accent-color);
+  color: rgb(255, 255, 255);
+  border: none;
+  padding: 10px 15px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.shbtn:hover, #exportButton:hover, #saveButton:hover { /* Pridané #saveButton sem */
+  background-color: var(--hover-color);
+  transform: translateY(-2px);
+}
+
+.main-layout {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.left-column {
+  width: 400px;
+  box-shadow: var(--box-shadow);
+}
+
+.right-column {
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: var(--box-shadow);
+}
+
+.calendar-table {
+  background-color: #34495e;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.calendar-table h2 {
+  color: var(--primary-color);
+  margin-top: 0;
+  border-bottom: 2px solid var(--accent-color);
+  padding-bottom: 10px;
+}
+
+.container-people {
+  background-color: #34495e;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  padding: 20px;
+}
+
+.container-people h3 {
+  color: var(--primary-color);
+  margin-top: 0;
+  border-bottom: 2px solid var(--accent-color);
+  padding-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+  .main-layout {
+    flex-direction: column;
+  }
+  .left-column, .right-column {
+    width: 100%;
+  }
+}
+
+.week-column {
+  width: 5%;
+}
+
+.day-column {
+  width: 30%;
+}
+
+.date-column {
+  width: 65%;
+}
+
+.selMonth {
+  width: 150px;
+}
+
+.selYear {
+  width: 100px;
+}
+
+.selPeople {
+  width: 300px;
+}
+
+.new-section {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+#newInput {
+  padding: 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid #ccc;
+  transition: var(--transition);
+  width: 230px;
+  margin-left: 270px; /* Posunutie doprava */
+}
+
+#newInput:hover {
+  border-color: var(--accent-color);
+}
+
+#newButton {
+  background-color: var(--accent-color);
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  width: 120px;
+}
+
+#newButton:hover {
+  background-color: var(--hover-color);
+  transform: translateY(-2px);
+}
+
+/* PRIDANÉ: Štýly pre modálne okno */
+.modal-overlay {
+  display: none; /* Štandardne skryté */
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  background-color: #34495e; /* Zladené s témou */
+  color: var(--text-color);
+  margin: 5% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  max-width: 800px; /* Väčšia maximálna šírka pre PDF */
+  border-radius: var(--border-radius);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--accent-color);
+  padding-bottom: 10px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--primary-color);
+}
+
+.modal-close {
+  color: var(--text-color);
+  font-size: 28px;
+  font-weight: bold;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 10px;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+  color: var(--accent-color);
+  text-decoration: none;
+  outline: none;
+}
+
+.modal-body {
+  margin-top: 20px;
+}
+
+.modal-footer {
+  margin-top: 20px;
+  text-align: right;
+}
+/* KONIEC PRIDANÉ */
