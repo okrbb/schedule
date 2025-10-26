@@ -1,879 +1,1158 @@
-// Globálna premenná pre konfiguráciu zamestnancov
-let employeeConfig = [];
+// --- GLOBÁLNY STAV APLIKÁCIE ---
 
-// PRIDANÉ: Globálne premenné pre náhľad a stiahnutie PDF
-let generatedPDFDataURI = null; // Toto teraz bude ObjectURL
+// Konfigurácia načítaná z JSON
+let allEmployees = [];
+let employeeGroups = []; 
+let employeeSignatures = {};
+
+// Centrálny stav (State)
+let appState = {
+    selectedMonth: new Date().getMonth(),
+    selectedYear: new Date().getFullYear(),
+    dutyAssignments: {}, 
+    reporting: {},
+    selectedDutyForSwap: null,
+    serviceOverrides: {}
+};
+
+// --- KONŠTANTY ---
+const CONFIG_URL = 'files/config.json';
+const FONT_URL = 'fonts/Roboto-Regular.ttf';
+const DOCX_TEMPLATE_URL = 'files/vykaz_pohotovosti.docx';
+
+// Typy notifikácií
+const TOAST_SUCCESS = 'success';
+const TOAST_ERROR = 'error';
+const TOAST_INFO = 'info';
+
+// DOM IDčká
+const ID_MONTH_SELECT = 'monthSelect';
+const ID_YEAR_SELECT = 'yearSelect';
+const ID_EXPORT_BUTTON = 'exportButton';
+const ID_SAVE_BUTTON = 'saveButton';
+const ID_CLEAR_BUTTON = 'clearButton';
+const ID_CLOSE_MODAL_BUTTON = 'closeModalButton';
+const ID_DOWNLOAD_PDF_BUTTON = 'downloadPdfButton';
+// ZMENA: ID pre 3 stĺpce
+const ID_AVAILABLE_LIST_1 = 'availableList1';
+const ID_AVAILABLE_LIST_2 = 'availableList2';
+const ID_AVAILABLE_LIST_3 = 'availableList3';
+const ID_HEADER_GROUP_1 = 'headerGroup1';
+const ID_HEADER_GROUP_2 = 'headerGroup2';
+const ID_HEADER_GROUP_3 = 'headerGroup3';
+
+const ID_CALENDAR_INFO = 'currentMonthInfo';
+const ID_PDF_PREVIEW_FRAME = 'pdfPreviewFrame';
+const ID_PREVIEW_MODAL = 'previewModal';
+
+// ODSTRÁNENÉ: GROUP_ID_AVAILABLE
+
+// CSS Triedy
+const CSS_EMPLOYEE_ITEM = 'employee-item';
+const CSS_GROUP_DRAG_ITEM = 'group-drag-item';
+const CSS_REPORTING = 'reporting';
+const CSS_IS_ASSIGNED = 'is-assigned';
+const CSS_SORTABLE_GHOST = 'sortable-ghost'; 
+const CSS_CALENDAR_DROP_GHOST = 'calendar-drop-ghost'; 
+const CSS_SORTABLE_DRAG = 'sortable-drag';
+const CSS_SWAP_SELECTED = 'swap-selected'; 
+
+// Názvy pre PDF font
+const PDF_FONT_FILENAME = 'Roboto-Regular.ttf';
+const PDF_FONT_INTERNAL_NAME = 'Roboto-Regular';
+
+// Pomocné globálne premenné
+// --- OPRAVA: Názvy mesiacov s malým začiatočným písmenom ---
+const monthNames = [
+    "január", "február", "marec", "apríl", "máj", "jún", "júl", "august", "september", "október", "november", "december"
+];
+const dayNames = ["Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota", "Nedeľa"];
+
+// Premenné pre PDF náhľad
+let generatedPDFDataURI = null;
 let generatedPDFFilename = '';
 
+// PREMENNÁ PRE NAČÍTANÝ FONT
+let customFontBase64 = null;
+
+// --- DOM ELEMENTY (Cache) ---
+let elMonthSelect, elYearSelect, elExportButton, elSaveButton, elClearButton;
+let elCloseModalButton, elDownloadPdfButton;
+// ZMENA: Cache pre 3 stĺpce
+let elAvailableList1, elAvailableList2, elAvailableList3;
+let elHeaderGroup1, elHeaderGroup2, elHeaderGroup3;
+let elCalendarInfo, elPdfPreviewFrame, elPreviewModal;
+
+
+// --- INICIALIZÁCIA APLIKÁCIE ---
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Cache-ovanie DOM elementov
+    elMonthSelect = document.getElementById(ID_MONTH_SELECT);
+    elYearSelect = document.getElementById(ID_YEAR_SELECT);
+    elExportButton = document.getElementById(ID_EXPORT_BUTTON);
+    elSaveButton = document.getElementById(ID_SAVE_BUTTON);
+    elClearButton = document.getElementById(ID_CLEAR_BUTTON);
+    elCloseModalButton = document.getElementById(ID_CLOSE_MODAL_BUTTON);
+    elDownloadPdfButton = document.getElementById(ID_DOWNLOAD_PDF_BUTTON);
+    // ZMENA: Cache pre 3 stĺpce
+    elAvailableList1 = document.getElementById(ID_AVAILABLE_LIST_1);
+    elAvailableList2 = document.getElementById(ID_AVAILABLE_LIST_2);
+    elAvailableList3 = document.getElementById(ID_AVAILABLE_LIST_3);
+    elHeaderGroup1 = document.getElementById(ID_HEADER_GROUP_1);
+    elHeaderGroup2 = document.getElementById(ID_HEADER_GROUP_2);
+    elHeaderGroup3 = document.getElementById(ID_HEADER_GROUP_3);
+
+    elCalendarInfo = document.getElementById(ID_CALENDAR_INFO);
+    elPdfPreviewFrame = document.getElementById(ID_PDF_PREVIEW_FRAME);
+    elPreviewModal = document.getElementById(ID_PREVIEW_MODAL);
+    
+    // 2. Načítať konfiguráciu
+    await loadConfig();
+    
+    // 3. Načítať font (asynchrónne na pozadí)
+    loadFontData();
+    
+    // 4. Inicializovať UI komponenty
+    populateYearSelect();
+    elMonthSelect.value = appState.selectedMonth;
+    // ZMENA: Inicializácia 3 D&D zoznamov
+    initSortableList(elAvailableList1);
+    initSortableList(elAvailableList2);
+    initSortableList(elAvailableList3);
+    initEventListeners();
+    
+    // 5. Vykresliť počiatočný stav
+    render();
+});
+
 /**
- * Načíta konfiguráciu zamestnancov zo súboru config.json
+ * Načíta konfiguráciu zo súboru config.json
  */
 async function loadConfig() {
     try {
-        const response = await fetch('files/config.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        employeeConfig = await response.json();
+        const response = await fetch(CONFIG_URL);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const config = await response.json();
+        
+        allEmployees = config.zamestnanci.flatMap(group => group.moznosti);
+        employeeGroups = config.zamestnanci; 
+        employeeSignatures = config.podpisy;
+        
     } catch (error) {
         console.error('Chyba pri načítaní files/config.json:', error);
-        alert('Nepodarilo sa načítať konfiguráciu zamestnancov. Skontrolujte konzolu.');
+        zobrazOznamenie('Nepodarilo sa načítať konfiguráciu zamestnancov. Aplikácia je nefunkčná.', TOAST_ERROR);
+        
+        elExportButton.disabled = true;
+        elSaveButton.disabled = true;
+        elClearButton.disabled = true;
     }
 }
 
 /**
- * Naplní <select> zoznamom ľudí z načítanej konfigurácie
+ * Naplní <select> rokmi
  */
-function populatePeopleSelect() {
-    const listPeople = document.getElementById('listPeople');
-    if (!listPeople) return;
+function populateYearSelect() {
+    const currentYear = new Date().getFullYear();
+    for (let year = currentYear - 10; year <= currentYear + 10; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        elYearSelect.appendChild(option);
+    }
+    elYearSelect.value = currentYear;
+    appState.selectedYear = currentYear;
+}
 
-    listPeople.innerHTML = '<option value="0"></option>'; // Vyčistiť a ponechať prázdnu možnosť
+/**
+ * Inicializuje všetky hlavné event listenery
+ */
+function initEventListeners() {
+    elMonthSelect.addEventListener('change', handleDateChange);
+    elYearSelect.addEventListener('change', handleDateChange);
+    
+    elExportButton.addEventListener('click', showSchedulePreview);
+    elSaveButton.addEventListener('click', generateDocxReport);
+    elClearButton.addEventListener('click', clearSchedule); 
 
-    employeeConfig.forEach(group => {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = group.skupina;
+    // Listenery pre modálne okno
+    elCloseModalButton.addEventListener('click', closeModal);
+    elDownloadPdfButton.addEventListener('click', downloadSchedulePDF);
 
-        group.moznosti.forEach(person => {
-            const option = document.createElement('option');
-            option.value = person.id;
-            // Zostaví text presne ako bol v pôvodnom HTML (Meno, Telefón)
-            option.textContent = person.telefon ? `${person.meno}, ${person.telefon}` : person.meno;
-            optgroup.appendChild(option);
-        });
-        listPeople.appendChild(optgroup);
+    // Dvojité kliknutie pre výber výmeny
+    elCalendarInfo.addEventListener('dblclick', handleCalendarDutyDblClick);
+    
+    // ZMENA: Kliknutie na zamestnanca v 3 D&D zoznamoch pre dokončenie výmeny
+    elAvailableList1.addEventListener('click', handleEmployeeListClick);
+    elAvailableList2.addEventListener('click', handleEmployeeListClick);
+    elAvailableList3.addEventListener('click', handleEmployeeListClick);
+
+    // Kliknutie na položku v kalendári (pre reporting)
+    elCalendarInfo.addEventListener('click', handleCalendarDutyClick);
+}
+
+// --- SPRÁVA STAVU (STATE MANAGEMENT) ---
+
+/**
+ * Aktualizuje stav (appState) pri zmene dátumu a prekreslí UI
+ */
+function handleDateChange(e) {
+    const { id, value } = e.target;
+    if (id === ID_MONTH_SELECT) {
+        appState.selectedMonth = parseInt(value);
+    } else if (id === ID_YEAR_SELECT) {
+        appState.selectedYear = parseInt(value);
+    }
+    render(); 
+}
+
+/**
+ * Spracuje dvojité kliknutie na zamestnanca v kalendári (Vyberá cieľovú službu pre výmenu)
+ * (BEZO ZMENY)
+ */
+function handleCalendarDutyDblClick(e) {
+    const employeeItem = e.target.closest('.employee-item-calendar');
+    if (!employeeItem) return;
+
+    const { employeeId, weekKey } = employeeItem.dataset;
+    
+    document.querySelectorAll(`.${CSS_SWAP_SELECTED}`).forEach(el => el.classList.remove(CSS_SWAP_SELECTED));
+    
+    if (appState.selectedDutyForSwap && appState.selectedDutyForSwap.weekKey === weekKey && appState.selectedDutyForSwap.originalId === employeeId) {
+        appState.selectedDutyForSwap = null;
+        zobrazOznamenie('Výber služby pre výmenu zrušený.', TOAST_INFO);
+    } else {
+        appState.selectedDutyForSwap = { weekKey, originalId: employeeId };
+        employeeItem.classList.add(CSS_SWAP_SELECTED);
+        
+        const originalEmployee = findEmployeeById(employeeId);
+        const employeeName = originalEmployee ? originalEmployee.meno : 'Neznámy zamestnanec';
+        
+        zobrazOznamenie(`VYBRANÁ SLUŽBA PRE VÝMENU: ${employeeName} v týždni ${weekKey}. Teraz kliknite na náhradníka v zoznamoch dostupných.`, TOAST_INFO);
+    }
+}
+
+/**
+ * (UPRAVENÉ) Spracuje kliknutie na zamestnanca v D&D zozname (Dostupní). Ak je vybraná služba pre SWAP, vykoná prepis.
+ */
+function handleEmployeeListClick(e) {
+    const employeeItem = e.target.closest('.employee-item');
+    if (!employeeItem) return;
+
+    if (!appState.selectedDutyForSwap) return; 
+
+    const newEmployeeId = employeeItem.dataset.id;
+    if (!newEmployeeId) return;
+
+    const { weekKey, originalId } = appState.selectedDutyForSwap;
+
+    if (newEmployeeId === originalId) {
+        zobrazOznamenie('Náhradník nemôže byť tá istá osoba. Vyberte iného zamestnanca.', TOAST_ERROR);
+        return;
+    }
+
+    if (!appState.serviceOverrides[weekKey]) {
+        appState.serviceOverrides[weekKey] = {};
+    }
+    appState.serviceOverrides[weekKey][originalId] = newEmployeeId;
+
+    appState.selectedDutyForSwap = null;
+    document.querySelectorAll(`.${CSS_SWAP_SELECTED}`).forEach(el => el.classList.remove(CSS_SWAP_SELECTED));
+    zobrazOznamenie(`Služba bola úspešne prepísaná v týždni ${weekKey}.`, TOAST_SUCCESS);
+
+    // --- OPRAVA CHYBY ---
+    // renderCalendar();  // PÔVODNÝ KÓD (chybný)
+    render();            // NOVÝ KÓD (opravený)
+}
+
+
+/**
+ * Spracuje kliknutie na položku zamestnanca priamo v kalendári (Reporting)
+ * (BEZO ZMENY)
+ */
+function handleCalendarDutyClick(e) {
+    const employeeItem = e.target.closest('.employee-item-calendar');
+    if (!employeeItem) return;
+
+    const { employeeId, weekKey } = employeeItem.dataset;
+    if (!employeeId || !weekKey) return;
+
+    if (appState.selectedDutyForSwap) { }
+
+    // --- Logika REPORTING ---
+    if (!appState.reporting[weekKey]) {
+        appState.reporting[weekKey] = [];
+    }
+    const reportingArray = appState.reporting[weekKey];
+    const index = reportingArray.indexOf(employeeId);
+    let isNowReporting; 
+
+    if (index > -1) {
+        reportingArray.splice(index, 1);
+        isNowReporting = false;
+    } else {
+        reportingArray.push(employeeId);
+        isNowReporting = true;
+    }
+    
+    employeeItem.classList.toggle(CSS_REPORTING, isNowReporting);
+
+    const allReportingIds = Object.values(appState.reporting).flat();
+    const isReportingInAnyWeek = allReportingIds.includes(employeeId);
+
+    document.querySelectorAll(`.employee-item[data-id="${employeeId}"]`).forEach(el => {
+        el.classList.toggle(CSS_REPORTING, isReportingInAnyWeek);
     });
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
-    // Najprv načítať konfiguráciu, potom inicializovať zvyšok
-    await loadConfig();
-    populatePeopleSelect(); // Naplní zoznam ľudí
+/**
+ * Vymaže celý rozpis z kalendára a prekreslí UI
+ * (BEZO ZMENY)
+ */
+function clearSchedule() {
+    appState.dutyAssignments = {};
+    appState.reporting = {};
+    appState.serviceOverrides = {};
+    appState.selectedDutyForSwap = null;
+    
+    render(); 
+    zobrazOznamenie('Celý rozpis služieb a prepisy boli vymazané.', TOAST_INFO);
+}
 
-    function populateYearSelect() {
-        const yearSelect = document.getElementById('yearSelect');
-        const currentYear = new Date().getFullYear();
-        for (let year = currentYear - 10; year <= currentYear + 10; year++) {
-            const option = document.createElement('option');
-            option.value = year;
-            option.textContent = year;
-            yearSelect.appendChild(option);
+/**
+ * Pomocná funkcia na nájdenie zamestnanca v globálnej konfigurácii
+ * (BEZO ZMENY)
+ */
+function findEmployeeById(id) {
+    return allEmployees.find(emp => emp.id === id);
+}
+
+// --- VYKRESLOVACIE FUNKCIE (RENDER) ---
+
+/**
+ * Hlavná funkcia na prekreslenie celého UI na základe appState
+ * (BEZO ZMENY)
+ */
+function render() {
+    renderGroupLists();
+    renderCalendar();
+    initCalendarSortable();
+}
+
+/**
+ * (UPRAVENÉ) Vykreslí 3 stĺpce dostupných zamestnancov
+ */
+function renderGroupLists() {
+    const assignedIds = new Set(
+        Object.values(appState.dutyAssignments).flat().map(p => p.id)
+    );
+    const allReportingIds = new Set(
+        Object.values(appState.reporting).flat()
+    );
+
+    const buildListContent = (group) => {
+        if (!group) return ''; 
+        let html = '';
+        const availableInGroup = group.moznosti;
+        if (availableInGroup.length === 0) return '';
+        
+        const allMembersAvailable = group.moznosti.every(emp => !assignedIds.has(emp.id));
+
+        if (allMembersAvailable) {
+            const employeeIds = JSON.stringify(group.moznosti.map(emp => emp.id));
+            // --- ZMENA: Text tlačidla skupiny ---
+            html += `
+                <div class="${CSS_GROUP_DRAG_ITEM}" 
+                     data-group-ids='${employeeIds}' 
+                     data-group-name="${group.skupina}">
+                     ${group.skupina}
+                </div>
+            `;
         }
-        yearSelect.value = currentYear; // Set current year as default
+
+        html += availableInGroup.map(employee => {
+            const isAssigned = assignedIds.has(employee.id);
+            const isReporting = allReportingIds.has(employee.id);
+            
+            let classes = CSS_EMPLOYEE_ITEM;
+            if (isAssigned) classes += ` ${CSS_IS_ASSIGNED}`;
+            if (isReporting) classes += ` ${CSS_REPORTING}`;
+
+            return `
+                <div class="${classes}" data-id="${employee.id}">
+                    ${employee.meno}
+                </div>
+            `;
+        }).join('');
+        
+        return html;
+    };
+
+    const group1 = employeeGroups[0];
+    if (group1) {
+        elHeaderGroup1.textContent = group1.skupina;
+        elAvailableList1.innerHTML = buildListContent(group1);
+    } else {
+        elHeaderGroup1.textContent = '';
+        elAvailableList1.innerHTML = '';
     }
 
-    function showSchedule() {
-        // ... (kód pre showSchedule zostáva nezmenený) ...
-        // Získanie vybraného dátumu
-        const selectedMonth = document.getElementById('monthSelect').value;
-        const selectedYear = document.getElementById('yearSelect').value;
-        const currentDate = new Date(selectedYear, selectedMonth, 1);
-        const currentMonth = currentDate.getMonth();
-        const currentYear = currentDate.getFullYear();
+    const group2 = employeeGroups[1];
+    if (group2) {
+        elHeaderGroup2.textContent = group2.skupina;
+        elAvailableList2.innerHTML = buildListContent(group2);
+    } else {
+        elHeaderGroup2.textContent = '';
+        elAvailableList2.innerHTML = '';
+    }
 
-        // Názvy mesiacov v slovenčine
-        const monthNames = [
-            "Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"
-        ];
+    const group3 = employeeGroups[2];
+    if (group3) {
+        elHeaderGroup3.textContent = group3.skupina;
+        elAvailableList3.innerHTML = buildListContent(group3);
+    } else {
+        elHeaderGroup3.textContent = '';
+        elAvailableList3.innerHTML = '';
+    }
+}
 
-        // Názvy dní v slovenčine (začínajúc pondelkom)
-        const dayNames = ["Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota", "Nedeľa"];
 
-        // Funkcia na získanie čísla týždňa
-        function getWeekNumber(date) {
-            const startOfYear = new Date(date.getFullYear(), 0, 1);
-            const pastDaysOfYear = (date - startOfYear) / 86400000;
-            return Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
-        }
+/**
+ * Vytvorí HTML reťazec pre jedného zamestnanca (používané v D&D)
+ * (BEZO ZMENY)
+ */
+function createEmployeeItemHTML(employee, allReportingIds) {
+    const isReporting = allReportingIds.has(employee.id);
+    
+    return `
+        <div class="${CSS_EMPLOYEE_ITEM} ${isReporting ? CSS_REPORTING : ''}" data-id="${employee.id}">
+            ${employee.meno}
+        </div>
+    `;
+}
 
-        // Zobrazenie informácie o aktuálnom mesiaci
-        const firstDay = new Date(currentYear, currentMonth, 1);
-        const firstDayOfWeek = firstDay.getDay();
-        const currentWeek = getWeekNumber(currentDate);
+/**
+ * (UPRAVENÉ) Vykreslí "živý" kalendár služieb na základe appState
+ * Odstránená pomlčka '—'
+ */
+function renderCalendar() {
+    const currentMonth = appState.selectedMonth;
+    const currentYear = appState.selectedYear;
 
-        let htmlContent = `<table>
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+
+    let htmlContent = `<h2>${monthNames[currentMonth]} ${currentYear}</h2>
+        <table>
             <thead>
                 <tr>
                     <th class="week-column">Týždeň</th>
                     <th class="day-column">Deň</th>
                     <th class="date-column">Dátum</th>
+                    <th class="duty-column-header">Služba</th>
                 </tr>
             </thead>
             <tbody>`;
 
-        // Zobrazenie posledného dňa predchádzajúceho mesiaca
-        const lastDayPrevMonth = new Date(currentYear, currentMonth, 0);
-        const lastDayOfWeekPrevMonth = (lastDayPrevMonth.getDay() + 6) % 7;
-        const weekNumberPrevMonth = getWeekNumber(lastDayPrevMonth);
+    let lastRenderedWeekKey = -1; 
+    let dutyCycleDayIndex = 0; 
+    let previousGroupEmployees = []; 
 
-        htmlContent += `<tr class="${lastDayOfWeekPrevMonth === 0 ? 'new-week' : ''}">
-            <td class="week-column">${lastDayOfWeekPrevMonth === 0 ? weekNumberPrevMonth : ''}</td>
-            <td class="day-column">${dayNames[lastDayOfWeekPrevMonth]}</td>
-            <td class="date-column">${lastDayPrevMonth.getDate()}. ${monthNames[lastDayPrevMonth.getMonth()]} ${lastDayPrevMonth.getFullYear()}</td>
-            <td class="duty-column" id="duty-${lastDayPrevMonth.getDate()}-${lastDayPrevMonth.getMonth()}-${lastDayPrevMonth.getFullYear()}"></td>
-        </tr>`;
-
-        // Zobrazenie dní aktuálneho mesiaca
-        for (let day = 1; day <= 31; day++) {
-            const date = new Date(currentYear, currentMonth, day);
-            if (date.getMonth() !== currentMonth) break;
-
-            const dayOfWeek = (date.getDay() + 6) % 7; // Posunúť dni tak, aby pondelok bol prvý deň
-            const weekNumber = getWeekNumber(date);
-
-            htmlContent += `<tr class="${dayOfWeek === 0 ? 'new-week' : ''}">
-                <td class="week-column">${dayOfWeek === 0 ? weekNumber : ''}</td>
-                <td class="day-column">${dayNames[dayOfWeek]}</td>
-                <td class="date-column">${date.getDate()}. ${monthNames[currentMonth]} ${currentYear}</td>
-                <td class="duty-column" id="duty-${date.getDate()}-${currentMonth}-${currentYear}"></td>
-            </tr>`;
-        }
-
-        // Zobrazenie prvého dňa nasledujúceho mesiaca
-        const firstDayNextMonth = new Date(currentYear, currentMonth + 1, 1);
-        const firstDayOfWeekNextMonth = (firstDayNextMonth.getDay() + 6) % 7;
-        const weekNumberNextMonth = getWeekNumber(firstDayNextMonth);
-
-        htmlContent += `<tr class="${firstDayOfWeekNextMonth === 0 ? 'new-week' : ''}">
-            <td class="week-column">${firstDayOfWeekNextMonth === 0 ? weekNumberNextMonth : ''}</td>
-            <td class="day-column">${dayNames[firstDayOfWeekNextMonth]}</td>
-            <td class="date-column">${firstDayNextMonth.getDate()}. ${monthNames[firstDayNextMonth.getMonth()]} ${firstDayNextMonth.getFullYear()}</td>
-            <td class="duty-column" id="duty-${firstDayNextMonth.getDate()}-${firstDayNextMonth.getMonth()}-${firstDayNextMonth.getFullYear()}"></td>
-        </tr>`;
-
-        document.getElementById('currentMonthInfo').innerHTML = htmlContent;
-    }
-
-    function showSelectedPerson() {
-        // ... (kód pre showSelectedPerson zostáva nezmenený) ...
-        const listPeople = document.getElementById('listPeople');
-        const selectedValue = listPeople.value;
-        const selectedPerson = listPeople.options[listPeople.selectedIndex].text;
-
-        const peopleList1 = document.getElementById('peopleList1');
-        const peopleList2 = document.getElementById('peopleList2');
-        const peopleList3 = document.getElementById('peopleList3');
-
-        let table1 = peopleList1.querySelector('.table1');
-        let table2 = peopleList2.querySelector('.table2');
-        let table3 = peopleList3.querySelector('.table3');
-
-        if (!table1) {
-            table1 = document.createElement('table');
-            table1.classList.add('table1');
-            table1.innerHTML = `<thead>
-                <tr>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody></tbody>`;
-            peopleList1.appendChild(table1);
-        }
-
-        if (!table2) {
-            table2 = document.createElement('table');
-            table2.classList.add('table2');
-            table2.innerHTML = `<thead>
-                <tr>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody></tbody>`;
-            peopleList2.appendChild(table2);
-        }
-
-        if (!table3) {
-            table3 = document.createElement('table');
-            table3.classList.add('table3');
-            table3.innerHTML = `<thead>
-                <tr>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody></tbody>`;
-            peopleList3.appendChild(table3);
-        }
-
-        const tables = [table1, table2, table3];
-        const personCount = peopleList1.querySelectorAll('td').length + peopleList2.querySelectorAll('td').length + peopleList3.querySelectorAll('td').length;
-        const tableIndex = Math.floor(personCount / 3);
-
-        if (selectedValue.startsWith('group')) {
-            // Nájdenie správnej skupiny v JSON dátach
-            const groupData = employeeConfig.find(g => g.moznosti.some(p => p.id === selectedValue));
-            if (groupData) {
-                // Filtrujeme "Celá skupina" a berieme len reálnych ľudí
-                const groupOptions = groupData.moznosti.filter(p => !p.id.startsWith('group'));
-                
-                groupOptions.forEach(option => {
-                    if (tableIndex < tables.length) {
-                        const tbody = tables[tableIndex].querySelector('tbody');
-                        const row = document.createElement('tr');
-                        const cell = document.createElement('td');
-                        // Zostavíme text (Meno, Telefón)
-                        cell.textContent = option.telefon ? `${option.meno}, ${option.telefon}` : option.meno;
-                        cell.addEventListener('click', editPerson);
-                        row.appendChild(cell);
-                        tbody.appendChild(row);
+    const addGhostRows = (startIndex, group, weekKey) => {
+        for (let i = startIndex; i < group.length; i++) {
+            const employee = group[i];
+            
+            let employeeToRender = employee;
+            if (employee) {
+                const overridesForWeek = appState.serviceOverrides[weekKey];
+                if (overridesForWeek) {
+                    const overrideId = overridesForWeek[employee.id];
+                    if (overrideId) {
+                        const newEmployee = findEmployeeById(overrideId);
+                        if (newEmployee) employeeToRender = newEmployee;
                     }
-                });
-            }
-
-        } else if (selectedValue !== "0") { // Ignorujeme prázdnu voľbu
-            if (tableIndex < tables.length) {
-                const tbody = tables[tableIndex].querySelector('tbody');
-                const row = document.createElement('tr');
-                const cell = document.createElement('td');
-                cell.textContent = selectedPerson;
-                cell.addEventListener('click', editPerson);
-                row.appendChild(cell);
-                tbody.appendChild(row);
-            }
-        }
-
-        // Add event listeners to existing cells for editing
-        [peopleList1, peopleList2, peopleList3].forEach(peopleList => {
-            peopleList.querySelectorAll('td').forEach(cell => {
-                cell.removeEventListener('click', editPerson); // Remove any existing listeners to avoid duplicates
-                cell.addEventListener('click', editPerson);
-            });
-        });
-
-        // Update the schedule table with the selected person's name
-        const dateSelect = document.getElementById('dateSelect');
-        if (dateSelect) {
-            const selectedDate = dateSelect.value;
-            const dutyCell = document.getElementById(`duty-${selectedDate}`);
-            if (dutyCell) {
-                dutyCell.textContent = selectedPerson;
-            }
-        }
-
-        // Update the schedule table with values from table1, table2, table3
-        const scheduleTable = document.getElementById('currentMonthInfo').querySelector('table');
-        const scheduleRows = scheduleTable.querySelectorAll('tr');
-        scheduleRows.forEach(row => {
-            const dateCell = row.querySelector('.date-column');
-            if (dateCell) {
-                const dateText = dateCell.textContent;
-                const dutyCell = row.querySelector('.duty-column');
-                if (dutyCell) {
-                    tables.forEach(table => {
-                        const tableHeader = table.querySelector('thead tr th').textContent;
-                        const employeeRows = table.querySelectorAll('tbody tr');
-                        employeeRows.forEach(employeeRow => {
-                            const employeeCell = employeeRow.querySelector('td');
-                            if (employeeCell && employeeCell.textContent === selectedPerson) {
-                                dutyCell.textContent = tableHeader;
-                            }
-                        });
-                    });
                 }
             }
-        });
-    }
+            if (!employeeToRender) continue;
+            
+            const reportersForWeek = appState.reporting[weekKey] || [];
+            const isReporting = reportersForWeek.includes(employeeToRender.id);
+            
+            const isSwapSelected = appState.selectedDutyForSwap && 
+                                   appState.selectedDutyForSwap.weekKey === weekKey &&
+                                   appState.selectedDutyForSwap.originalId === employeeToRender.id;
+            const extraClass = isSwapSelected ? CSS_SWAP_SELECTED : '';
 
-    function editPerson() {
-        const newValue = prompt('Edit person:', this.textContent);
-        if (newValue !== null) {
-            this.textContent = newValue;
+            const ghostDutyCellContent = `
+                <div class="employee-item-calendar ${isReporting ? CSS_REPORTING : ''} ${extraClass}" 
+                     data-employee-id="${employeeToRender.id}" 
+                     data-week-key="${weekKey}">
+                    ${employeeToRender.meno}
+                </div>
+            `;
+            
+            htmlContent += `
+                <tr class="ghost-row">
+                    <td></td>
+                    <td></td>
+                    <td style="text-align: right; opacity: 0.6; font-size: 0.8em;">(pokr. t. ${weekKey.split('-')[1]})</td>
+                    <td class="duty-column" data-week-key="${weekKey}">
+                        ${ghostDutyCellContent}
+                    </td>
+                </tr>
+            `;
         }
-    }
+    };
 
-    // Funkcia na generovanie a zobrazenie náhľadu PDF
-    async function showSchedulePreview() {
-        // 1. Skontrolujeme, či sú vybrané nejaké položky
-        const peopleList1Items = document.getElementById('peopleList1').querySelectorAll('td').length;
-        const peopleList2Items = document.getElementById('peopleList2').querySelectorAll('td').length;
-        const peopleList3Items = document.getElementById('peopleList3').querySelectorAll('td').length;
+
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+        const date = new Date(currentYear, currentMonth, day);
+        const dayOfWeek = (date.getDay() + 6) % 7; 
+        const weekNumber = getWeekNumber(date);
+        const reportingKey = `${currentYear}-${weekNumber}`; 
         
-        if (peopleList1Items === 0 && peopleList2Items === 0 && peopleList3Items === 0) {
-            alert("Vyberte členov výjazdovej skupiny");
-            return; 
-        }
-        
-        // 2. Získanie dát (rovnaké ako v pôvodnej funkcii)
-        const selectedMonth = parseInt(document.getElementById('monthSelect').value);
-        const selectedYear = parseInt(document.getElementById('yearSelect').value);
-        
-        const monthNames = [
-            "Január", "Február", "Marec", "Apríl", "Máj", "Jún", 
-            "Júl", "August", "September", "Október", "November", "December"
-        ];
-        const dayNames = ["Pondelok", "Utorok", "Streda", "Štvrtok", "Piatok", "Sobota", "Nedeľa"];
-        
-        // 3. Vytvorenie HTML obsahu (rovnaké ako v pôvodnej funkcii)
-        let htmlString = `
-            <div style="font-family: Arial, sans-serif; margin: 20px; color: #000; background: #fff; width: 210mm; padding: 10mm;">
-                <h2 style="text-align: center;">Rozpis pohotovosti zamestnancov odboru krízového riadenia Okresného úradu Banská Bystrica <span style="color: red;">${monthNames[selectedMonth]}, ${selectedYear}</span></h2>
-                <table style="width: 100%; border-collapse: collapse; margin-top: 40px;">
-                    <thead>
-                        <tr>
-                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Dátum</th>
-                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Deň</th>
-                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Meno a priezvisko</th>
-                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2;">Σ</th>
-                            <th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f2f2f2; width: 150px;">Poznámka</th> 
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        // Získanie zoznamu ľudí
-        function getPeopleFromList(listId) {
-            const peopleList = document.getElementById(listId);
-            const people = [];
-            if (peopleList) {
-                const cells = peopleList.querySelectorAll('td');
-                cells.forEach(cell => {
-                    people.push(cell.textContent);
-                });
+        if (reportingKey !== lastRenderedWeekKey) {
+            
+            if (lastRenderedWeekKey !== -1 && 
+                day > 1 && day <= 7 && 
+                previousGroupEmployees.length > dutyCycleDayIndex) 
+            {
+                addGhostRows(dutyCycleDayIndex, previousGroupEmployees, lastRenderedWeekKey);
             }
-            return people;
+
+            dutyCycleDayIndex = 0;
+            lastRenderedWeekKey = reportingKey;
         }
+
+        const activeGroupEmployees = appState.dutyAssignments[reportingKey] || [];
+        previousGroupEmployees = activeGroupEmployees; 
         
-        const group1People = getPeopleFromList('peopleList1');
-        const group2People = getPeopleFromList('peopleList2');
-        const group3People = getPeopleFromList('peopleList3');
-        
-        function formatDate(date) {
-            return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
-        }
-        
-        function getDayName(date) {
-            const dayOfWeek = (date.getDay() + 6) % 7; 
-            return dayNames[dayOfWeek];
-        }
-        
-        function getNextSunday(date) {
-            const result = new Date(date);
-            const dayOfWeek = (date.getDay() + 6) % 7;
-            if (dayOfWeek === 6) return result;
-            const daysUntilSunday = 6 - dayOfWeek;
-            result.setDate(result.getDate() + daysUntilSunday);
-            return result;
-        }
-        
-        function addPeopleRows(date, people) {
-            const dayName = getDayName(date);
-            const formattedDate = formatDate(date);
-            for (let i = 0; i < people.length; i++) {
-                htmlString += `
-                    <tr>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${i === 0 ? formattedDate : ''}</td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${i === 0 ? dayName : ''}</td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${people[i]}</td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;"></td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;"></td> 
-                    </tr>
+        let dutyCellContent = ''; 
+
+        if (activeGroupEmployees.length > 0) {
+            let employee = activeGroupEmployees[dutyCycleDayIndex]; 
+            
+            let employeeToRender = employee;
+            if (employee) {
+                const overridesForWeek = appState.serviceOverrides[reportingKey];
+                if (overridesForWeek) {
+                    const overrideId = overridesForWeek[employee.id];
+                    if (overrideId) {
+                        const newEmployee = findEmployeeById(overrideId);
+                        if (newEmployee) {
+                            employeeToRender = newEmployee; 
+                        }
+                    }
+                }
+            }
+            
+            if (employeeToRender) {
+                const reportersForWeek = appState.reporting[reportingKey] || [];
+                const isReporting = reportersForWeek.includes(employeeToRender.id);
+                
+                const isSwapSelected = appState.selectedDutyForSwap && 
+                                       appState.selectedDutyForSwap.weekKey === reportingKey &&
+                                       appState.selectedDutyForSwap.originalId === employeeToRender.id;
+                                       
+                const extraClass = isSwapSelected ? CSS_SWAP_SELECTED : '';
+
+                dutyCellContent = `
+                    <div class="employee-item-calendar ${isReporting ? CSS_REPORTING : ''} ${extraClass}" 
+                         data-employee-id="${employeeToRender.id}" 
+                         data-week-key="${reportingKey}">
+                        ${employeeToRender.meno}
+                    </div>
                 `;
+            } else {
+                // --- ZMENA: Odstránená pomlčka ---
+                dutyCellContent = '';
             }
+            
+            dutyCycleDayIndex++;
+            
+        } else {
+            dutyCellContent = ''; 
+            dutyCycleDayIndex = 0; 
+            previousGroupEmployees = []; 
         }
         
-        const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
-        const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
+        const weekCellContent = (dayOfWeek === 0 || (day === 1 && date.getDay() !== 1)) ? weekNumber : '';
+
+        htmlContent += `<tr class="${dayOfWeek === 0 ? 'new-week' : ''}">
+            <td class="week-column">${weekCellContent}</td>
+            <td class="day-column">${dayNames[dayOfWeek]}</td>
+            <td class="date-column">${date.getDate()}. ${monthNames[currentMonth]} ${currentYear}</td>
+            <td class="duty-column" 
+                id="duty-${date.getDate()}-${currentMonth}-${currentYear}" 
+                data-week-key="${reportingKey}">
+                ${dutyCellContent}
+            </td>
+        </tr>`;
+    }
+
+    if (previousGroupEmployees.length > dutyCycleDayIndex) {
+        addGhostRows(dutyCycleDayIndex, previousGroupEmployees, lastRenderedWeekKey);
+    }
+
+    htmlContent += `</tbody></table>`;
+    elCalendarInfo.innerHTML = htmlContent;
+}
+
+// --- LOGIKA A POMOCNÉ FUNKCIE ---
+
+/**
+ * (UPRAVENÉ) Inicializuje D&D pre JEDEN zoznam dostupných
+ * Ponecháva možnosť presunúť len celé skupiny (.group-drag-item)
+ */
+function initSortableList(listElement) {
+    if (listElement) {
+        const options = {
+            animation: 150,
+            ghostClass: CSS_SORTABLE_GHOST,
+            dragClass: CSS_SORTABLE_DRAG,
+            group: { name: 'shared', pull: 'clone', put: false },
+            filter: '.available-group-header', 
+            // --- ZMENA: Umožní ťahať iba celé skupiny ---
+            draggable: `.${CSS_GROUP_DRAG_ITEM}`, 
+        };
+        new Sortable(listElement, options);
+    }
+}
+
+/**
+ * Inicializuje D&D pre bunky kalendára.
+ * (BEZO ZMENY)
+ */
+function initCalendarSortable() {
+    const calendarCells = document.querySelectorAll('.duty-column');
+    calendarCells.forEach(cell => {
+        new Sortable(cell, {
+            group: 'shared',
+            animation: 150,
+            ghostClass: CSS_CALENDAR_DROP_GHOST,
+            onAdd: handleDragToCalendar 
+        });
+    });
+}
+
+/**
+ * (UPRAVENÉ) Handler pre D&D udalosť 'onAdd' (pustenie položky do bunky kalendára)
+ * Zjednodušené, aby spracovalo iba presun skupiny.
+ */
+function handleDragToCalendar(evt) {
+    const { item, to } = evt; 
+    const weekKey = to.dataset.weekKey;
+    
+    if (!weekKey) return;
+
+    // Kontrola, či je to skupina (aj keď by už iné nemalo ísť presunúť)
+    const isGroupDrag = item.classList.contains(CSS_GROUP_DRAG_ITEM);
+    if (!isGroupDrag) {
+        item.remove(); // Odstránime nechcenú položku (ak by sa sem nejaká dostala)
+        return; 
+    }
+
+    let employeesToAssign = [];
+
+    const employeeIds = JSON.parse(item.dataset.groupIds); 
+    employeesToAssign = employeeIds.map(findEmployeeById).filter(Boolean);
+
+    item.remove(); // Odstráni "ghost" element z kalendára
+
+    // --- Logika pre priradenie skupiny (predtým v bloku 'if (isGroupDrag)') ---
+    
+    const [startYear, startWeek] = weekKey.split('-').map(Number);
+    const targetMonth = appState.selectedMonth; 
+    const targetYear = appState.selectedYear; 
+
+    let currentYear = startYear;
+    let currentWeek = startWeek;
+
+    while (true) {
+        const mondayOfCurrentWeek = getDateOfISOWeek(currentWeek, currentYear);
+
+        if (mondayOfCurrentWeek.getFullYear() > targetYear) {
+            break;
+        }
+        if (mondayOfCurrentWeek.getFullYear() === targetYear && mondayOfCurrentWeek.getMonth() > targetMonth) {
+            break;
+        }
         
-        const groupSequence = [group1People, group2People, group3People];
-        let currentDate = new Date(firstDayOfMonth);
-        let groupIndex = 0;
+        const currentKey = `${currentYear}-${currentWeek}`;
+        appState.dutyAssignments[currentKey] = employeesToAssign;
+
+        currentWeek += 3;
+
+        const weeksInYear = getISOWeeks(currentYear);
+        if (currentWeek > weeksInYear) {
+            currentWeek = currentWeek - weeksInYear;
+            currentYear += 1;
+        }
+    }
+
+    render(); 
+}
+
+
+/**
+ * Získa číslo týždňa pre daný dátum (ISO 8601)
+ * (BEZO ZMENY)
+ */
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return weekNo;
+}
+
+/**
+ * Získa celkový počet ISO týždňov v danom roku.
+ * (BEZO ZMENY)
+ */
+function getISOWeeks(year) {
+    const date = new Date(year, 11, 28); 
+    return getWeekNumber(date);
+}
+
+/**
+ * Vráti dátum (pondelok) pre zadané ISO týždeň a rok.
+ * (BEZO ZMENY)
+ */
+function getDateOfISOWeek(w, y) {
+    const jan4 = new Date(Date.UTC(y, 0, 4)); 
+    const jan4Day = (jan4.getUTCDay() + 6) % 7; 
+    const mondayOfW1 = new Date(jan4.valueOf() - jan4Day * 86400000);
+    return new Date(mondayOfW1.valueOf() + (w - 1) * 7 * 86400000);
+}
+
+
+// --- GENEROVANIE PDF (jsPDF-AutoTable) ---
+
+/**
+ * (UPRAVENÉ) Vygeneruje a zobrazí náhľad PDF rozpisu
+ * Pridaný stĺpec Kontakt, veľkosť písma a okraje vrátené na pôvodné.
+ */
+async function showSchedulePreview() {
+    if (Object.keys(appState.dutyAssignments).length === 0) {
+        zobrazOznamenie("Priraďte aspoň jedného zamestnanca alebo skupinu do kalendára.", TOAST_ERROR);
+        return;
+    }
+    
+    zobrazOznamenie('Generujem náhľad PDF...', TOAST_INFO);
+
+    if (!customFontBase64) {
+        zobrazOznamenie('Načítavam dáta fontu...', TOAST_INFO);
+        await loadFontData(); 
+        if (!customFontBase64) {
+            zobrazOznamenie('Chyba: Font sa nepodarilo načítať. PDF nemusí mať správnu diakritiku.', TOAST_ERROR);
+        }
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        
+        if (customFontBase64) {
+            doc.addFileToVFS(PDF_FONT_FILENAME, customFontBase64);
+            doc.addFont(PDF_FONT_FILENAME, PDF_FONT_INTERNAL_NAME, 'normal');
+            doc.setFont(PDF_FONT_INTERNAL_NAME, 'normal'); 
+        }
+
+        const selectedMonth = appState.selectedMonth;
+        const selectedYear = appState.selectedYear;
+        const monthName = monthNames[selectedMonth];
+        
+        doc.setFontSize(14);
+        doc.text(`Rozpis pohotovosti zamestnancov odboru krízového riadenia`, doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+        
+        const pageCenter = doc.internal.pageSize.getWidth() / 2;
+        const yPos = 22; 
+        doc.setFontSize(14);
+
+        const text1 = `Okresného úradu Banská Bystrica - `;
+        const text2 = `${monthName} ${selectedYear}`;
+        doc.setTextColor(0, 0, 0); 
+        const text1Width = doc.getTextWidth(text1);
+        doc.setTextColor(255, 0, 0); 
+        const text2Width = doc.getTextWidth(text2);
+        const totalWidth = text1Width + text2Width;
+        const startX1 = pageCenter - (totalWidth / 2); 
+        const startX2 = startX1 + text1Width; 
+
+        doc.setTextColor(0, 0, 0); 
+        doc.text(text1, startX1, yPos);
+        doc.setTextColor(255, 0, 0); 
+        doc.text(text2, startX2, yPos);
+        doc.setTextColor(0, 0, 0); 
+        
+        // --- ÚPRAVA 1: Pridaný stĺpec 'Kontakt' ---
+        const tableHead = [['Dátum', 'Deň', 'Meno a priezvisko', 'Kontakt', 'Σ', 'Poznámka']];
+        const tableBody = [];
+        
+        const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
+        let currentDate = new Date(selectedYear, selectedMonth, 1);
+
+        const lightGray = [230, 230, 230];
         
         while (currentDate.getMonth() === selectedMonth) {
-            const currentGroup = groupSequence[groupIndex % 3];
-            addPeopleRows(currentDate, currentGroup);
+            const weekNumber = getWeekNumber(currentDate);
+            const reportingKey = `${selectedYear}-${weekNumber}`;
             
+            const activeGroup = appState.dutyAssignments[reportingKey] || [];
+            
+            const formattedDate = `${currentDate.getDate()}.${currentDate.getMonth() + 1}.${currentDate.getFullYear()}`;
+            const dayName = dayNames[(currentDate.getDay() + 6) % 7];
+            
+            const reportersForWeek = appState.reporting[reportingKey] || [];
+            const overridesForWeek = appState.serviceOverrides[reportingKey];
+
+            activeGroup.forEach((person, index) => {
+                let employeeToRender = person;
+                let originalId = person.id;
+                
+                if (overridesForWeek && overridesForWeek[originalId]) {
+                    const newEmployee = findEmployeeById(overridesForWeek[originalId]);
+                    if (newEmployee) {
+                        employeeToRender = newEmployee;
+                    }
+                }
+                
+                // --- ÚPRAVA 2: Rozdelenie mena a telefónu ---
+                const employeeName = employeeToRender.meno;
+                const employeePhone = employeeToRender.telefon || '';
+                
+                const poznamka = (reportersForWeek.includes(employeeToRender.id))
+                                 ? 'hlásenia' 
+                                 : '';
+
+                tableBody.push([
+                    index === 0 ? formattedDate : '',
+                    index === 0 ? dayName : '',
+                    employeeName, 
+                    employeePhone, // Nový stĺpec
+                    '',
+                    poznamka 
+                ]);
+            });
+
             const nextSunday = getNextSunday(currentDate);
             
             if (nextSunday.getMonth() === selectedMonth) {
-                // --- ZAČIATOK ZMENY: Vraciame premennú do 4. stĺpca ---
-                const daysUntilSunday = Math.floor((nextSunday - currentDate) / (24 * 60 * 60 * 1000)) + 1;
-                htmlString += `
-                    <tr style="background-color: #f2f2f2;">
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${formatDate(nextSunday)}</td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">Nedeľa</td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;"></td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${daysUntilSunday}</td> 
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;"></td> 
-                    </tr>
-                `;
-                // --- KONIEC ZMENY ---
+                const daysInCycle = Math.floor((nextSunday - currentDate) / (24 * 60 * 60 * 1000)) + 1;
+                
+                tableBody.push([
+                    { content: `${nextSunday.getDate()}.${nextSunday.getMonth() + 1}.${nextSunday.getFullYear()}`, styles: { fontStyle: 'bold', fillColor: lightGray } },
+                    { content: dayNames[6], styles: { fontStyle: 'bold', fillColor: lightGray } }, 
+                    { content: '', styles: { fillColor: lightGray } },
+                    { content: '', styles: { fillColor: lightGray } }, // Nová prázdna bunka pre Kontakt
+                    { content: daysInCycle.toString(), styles: { fontStyle: 'bold', halign: 'center', fillColor: lightGray } },
+                    { content: '', styles: { fillColor: lightGray } }
+                ]);
                 currentDate = new Date(nextSunday);
                 currentDate.setDate(currentDate.getDate() + 1);
             } else {
-                // --- ZAČIATOK ZMENY: Vraciame premennú do 4. stĺpca ---
-                const daysUntilEndOfMonth = Math.floor((lastDayOfMonth - currentDate) / (24 * 60 * 60 * 1000)) + 1;
-                htmlString += `
-                    <tr style="background-color: #f2f2f2;">
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${formatDate(lastDayOfMonth)}</td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${getDayName(lastDayOfMonth)}</td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;"></td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${daysUntilEndOfMonth}</td>
-                        <td style="border: 1px solid #ddd; padding: 8px; text-align: left;"></td> 
-                    </tr>
-                `;
-                // --- KONIEC ZMENY ---
-                break;
+                const daysInCycle = Math.floor((lastDayOfMonth - currentDate) / (24 * 60 * 60 * 1000)) + 1;
+                const endDayOfWeek = (lastDayOfMonth.getDay() + 6) % 7;
+                const endDayName = dayNames[endDayOfWeek];
+                const isSunday = (endDayOfWeek === 6);
+                
+                const cellStyles = { fontStyle: 'bold' };
+                if (isSunday) {
+                    cellStyles.fillColor = lightGray;
+                }
+                const emptyCellStyles = isSunday ? { fillColor: lightGray } : {};
+
+                tableBody.push([
+                    { content: `${lastDayOfMonth.getDate()}.${lastDayOfMonth.getMonth() + 1}.${lastDayOfMonth.getFullYear()}`, styles: { ...cellStyles } },
+                    { content: endDayName, styles: { ...cellStyles } },
+                    { content: '', styles: emptyCellStyles },
+                    { content: '', styles: emptyCellStyles }, // Nová prázdna bunka pre Kontakt
+                    { content: daysInCycle.toString(), styles: { ...cellStyles, halign: 'center' } },
+                    { content: '', styles: emptyCellStyles }
+                ]);
+                break; 
             }
-            groupIndex++;
         }
-        
-        htmlString += `
-                    </tbody>
-                </table>
-                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-                    <div style="margin-left: 50px;">
-                        <p>Zodpovedá:</p>
-                        <p>Ing. Vladimír Melikant</p>
-                        <p>vedúci oddelenia COaKP</p>
-                    </div>
-                    <div style="margin-right: 90px;">
-                        <p>Schvaľuje:</p>
-                        <p>Mgr. Mário Banič</p>
-                        <p>vedúci odboru</p>
-                    </div>
-                </div>
-            </div>
-        `;
 
-        // 4. Vytvorenie skrytého kontajnera na renderovanie
-        const renderContainer = document.createElement('div');
-        renderContainer.style.position = 'absolute';
-        renderContainer.style.left = '-9999px'; 
-        renderContainer.style.top = '0';
-        renderContainer.style.background = 'white'; 
-        renderContainer.innerHTML = htmlString;
-        document.body.appendChild(renderContainer);
-
-        // 5. Použitie html2canvas na vykreslenie HTML a jsPDF na vytvorenie PDF
-        try {
-            zobrazOznamenie('Generujem náhľad PDF...', 'info');
-            const canvas = await html2canvas(renderContainer, {
-                scale: 2, 
-                useCORS: true,
-                width: renderContainer.scrollWidth,
-                height: renderContainer.scrollHeight
-            });
-            
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4'); 
-            
-            const imgData = canvas.toDataURL('image/png');
-            const imgProps = doc.getImageProperties(imgData);
-            
-            const pdfPageWidth = doc.internal.pageSize.getWidth();
-            const pdfPageHeight = doc.internal.pageSize.getHeight();
-            
-            const scaledImgHeight = (imgProps.height * pdfPageWidth) / imgProps.width;
-
-            if (scaledImgHeight <= pdfPageHeight) {
-                doc.addImage(imgData, 'PNG', 0, 0, pdfPageWidth, scaledImgHeight);
-            } else {
-                const originalRatio = imgProps.width / imgProps.height;
-                const finalHeight = pdfPageHeight; 
-                const finalWidth = finalHeight * originalRatio; 
-                const posX = (pdfPageWidth - finalWidth) / 2;
-                doc.addImage(imgData, 'PNG', posX, 0, finalWidth, finalHeight);
-            }
-            
-            // 6. Uloženie dát pre náhľad a stiahnutie
-            if (generatedPDFDataURI && generatedPDFDataURI.startsWith('blob:')) {
-                URL.revokeObjectURL(generatedPDFDataURI);
-            }
-            
-            const pdfBlob = doc.output('blob');
-            generatedPDFDataURI = URL.createObjectURL(pdfBlob); 
-
-            generatedPDFFilename = `rozpis_pohotovosti_OKR_OUBB_${monthNames[selectedMonth]}_${selectedYear}.pdf`;
-
-            // 7. Zobrazenie náhľadu v modálnom okne
-            document.getElementById('pdfPreviewFrame').src = generatedPDFDataURI + '#toolbar=0';
-            document.getElementById('previewModal').style.display = 'block';
-
-        } catch (err) {
-            console.error("Chyba pri generovaní PDF:", err);
-            alert("Nepodarilo sa vygenerovať PDF náhľad.");
-            zobrazOznamenie('Chyba pri generovaní PDF.', 'error');
-        } finally {
-            // 8. Odstránenie skrytého kontajnera
-            document.body.removeChild(renderContainer);
-        }
-    }
-
-    // Funkcia na stiahnutie PDF, volaná z modálneho okna
-    function downloadSchedulePDF() {
-        if (generatedPDFDataURI) {
-            const a = document.createElement('a');
-            a.href = generatedPDFDataURI.split('#')[0]; // Pre stiahnutie chceme čistý blob URL
-            a.download = generatedPDFFilename; 
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            zobrazOznamenie('Súbor sa sťahuje...', 'success');
-        } else {
-            alert('Chyba: Neboli nájdené dáta na stiahnutie. Skúste náhľad vygenerovať znova.');
-            zobrazOznamenie('Chyba sťahovania.', 'error');
-        }
-    }
-
-
-    function clearSelectedEmployees() {
-        const peopleLists = ['peopleList1', 'peopleList2', 'peopleList3'];
-        peopleLists.forEach(listId => {
-            const peopleList = document.getElementById(listId);
-            if (peopleList) {
-                peopleList.innerHTML = ''; 
+        doc.autoTable({
+            head: tableHead,
+            body: tableBody,
+            startY: 30, 
+            theme: 'grid',
+            // --- ÚPRAVA 3: Vrátenie pôvodnej veľkosti písma hlavičky ---
+            headStyles: {
+                fillColor: [230, 230, 230],
+                textColor: [33, 33, 33],
+                fontStyle: 'bold',
+                fontSize: 10 // Vrátené na 10
+            },
+            // --- ÚPRAVA 4: Vrátenie pôvodnej veľkosti písma a odstránenie cellPadding ---
+            styles: {
+                font: customFontBase64 ? PDF_FONT_INTERNAL_NAME : 'helvetica',
+                fontSize: 10, // Vrátené na 10
+                // cellPadding: 1 // Odstránené
+            },
+            // --- ÚPRAVA 5: Posun stĺpca 'Σ' ---
+            columnStyles: {
+                4: { halign: 'center' } // Posunuté z 3 na 4
             }
         });
 
-        const dutyCells = document.querySelectorAll('.duty-column');
-        dutyCells.forEach(cell => {
-            cell.textContent = '';
-        });
-
-        const listPeople = document.getElementById('listPeople');
-        if (listPeople) {
-            listPeople.selectedIndex = 0; 
-        }
-    }
-
-    populateYearSelect(); 
-    document.getElementById('monthSelect').addEventListener('change', showSchedule);
-    document.getElementById('yearSelect').addEventListener('change', showSchedule);
-    document.getElementById('listPeople').addEventListener('change', showSelectedPerson);
-    
-    document.getElementById('exportButton').addEventListener('click', showSchedulePreview); 
-    
-    document.getElementById('clearButton').addEventListener('click', clearSelectedEmployees); 
-
-    document.getElementById('closeModalButton').addEventListener('click', () => {
-        document.getElementById('previewModal').style.display = 'none';
-        document.getElementById('pdfPreviewFrame').src = 'about:blank'; 
+        const finalY = doc.lastAutoTable.finalY;
+        doc.setFontSize(10);
         
+        // --- ÚPRAVA 6: Vrátenie pôvodných medzier pre podpisy ---
+        doc.text('Zodpovedá:', 40, finalY + 20); // Vrátené na +20
+        doc.text(employeeSignatures.zodpoveda.meno, 40, finalY + 27); // Vrátené na +27
+        doc.text(employeeSignatures.zodpoveda.funkcia, 40, finalY + 34); // Vrátené na +34
+        
+        doc.text('Schvaľuje:', doc.internal.pageSize.getWidth() - 80, finalY + 20); // Vrátené na +20
+        doc.text(employeeSignatures.schvaluje.meno, doc.internal.pageSize.getWidth() - 80, finalY + 27); // Vrátené na +27
+        doc.text(employeeSignatures.schvaluje.funkcia, doc.internal.pageSize.getWidth() - 80, finalY + 34); // Vrátené na +34
+
         if (generatedPDFDataURI && generatedPDFDataURI.startsWith('blob:')) {
-            // Odstránime #toolbar=0 pred revokeObjectURL, inak to nemusí fungovať
-            URL.revokeObjectURL(generatedPDFDataURI.split('#')[0]);
+            URL.revokeObjectURL(generatedPDFDataURI);
         }
+        
+        generatedPDFDataURI = doc.output('bloburl');
+        generatedPDFFilename = `rozpis_pohotovosti_OKR_OUBB_${monthName}_${selectedYear}.pdf`;
 
-        generatedPDFDataURI = null; 
-        generatedPDFFilename = '';
-    });
+        elPdfPreviewFrame.src = generatedPDFDataURI + '#toolbar=0&navpanes=0';
+        elPreviewModal.style.display = 'block';
 
-    document.getElementById('downloadPdfButton').addEventListener('click', downloadSchedulePDF);
-
-    showSchedule(); 
-});
-
-// --- Výkaz pohotovosti ---
-// (Zvyšok súboru script.js zostáva nezmenený)
-
-// Pomocná keš pre rýchle vyhľadávanie dát zamestnancov
-let employeeDataCache = new Map();
+    } catch (err) {
+        console.error("Chyba pri generovaní PDF:", err);
+        zobrazOznamenie("Nepodarilo sa vygenerovať PDF náhľad.", TOAST_ERROR);
+    }
+}
 
 /**
- * Nájde dáta zamestnanca v globálnej konfigurácii podľa textu zobrazeného v zozname.
- * @param {string} nameWithPhone - Text v tvare "Meno Priezvisko, Telefón"
- * @returns {object | null} - Objekt zamestnanca z config.json alebo null
+ * Pomocná funkcia pre PDF - nájde nasledujúcu nedeľu
+ * (BEZO ZMENY)
  */
-function findEmployeeData(nameWithPhone) {
-    if (employeeDataCache.has(nameWithPhone)) {
-        return employeeDataCache.get(nameWithPhone);
+function getNextSunday(date) {
+    const result = new Date(date);
+    const dayOfWeek = (date.getDay() + 6) % 7;
+    if (dayOfWeek === 6) return result;
+    const daysUntilSunday = 6 - dayOfWeek;
+    result.setDate(result.getDate() + daysUntilSunday);
+    return result;
+}
+
+// --- MODÁLNE OKNO A SŤAHOVANIE ---
+// (BEZO ZMENY)
+
+function downloadSchedulePDF() {
+    if (generatedPDFDataURI) {
+        const a = document.createElement('a');
+        a.href = generatedPDFDataURI; 
+        a.download = generatedPDFFilename; 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        zobrazOznamenie('Súbor sa sťahuje...', TOAST_SUCCESS);
+    } else {
+        zobrazOznamenie('Chyba sťahovania. Skúste náhľad vygenerovať znova.', TOAST_ERROR);
     }
-    for (const group of employeeConfig) {
-        for (const person of group.moznosti) {
-            // Zrekonštruujeme text, ako je v <option>
-            const personText = person.telefon ? `${person.meno}, ${person.telefon}` : person.meno;
-            if (personText === nameWithPhone) {
-                employeeDataCache.set(nameWithPhone, person);
-                return person;
-            }
-        }
+}
+
+function closeModal() {
+    elPreviewModal.style.display = 'none';
+    elPdfPreviewFrame.src = 'about:blank';
+    
+    if (generatedPDFDataURI && generatedPDFDataURI.startsWith('blob:')) {
+        URL.revokeObjectURL(generatedPDFDataURI);
     }
-    // Ak sa nenájde (napr. ručne upravená bunka), skúsime nájsť aspoň podľa mena
-    for (const group of employeeConfig) {
-        for (const person of group.moznosti) {
-             if (person.meno === nameWithPhone) {
-                 employeeDataCache.set(nameWithPhone, person);
-                return person;
-             }
-        }
+    generatedPDFDataURI = null; 
+    generatedPDFFilename = '';
+}
+
+// --- GENEROVANIE DOCX (Refaktorované pre appState) ---
+
+/**
+ * Vygeneruje DOCX výkaz pohotovosti
+ * (BEZO ZMENY)
+ */
+async function generateDocxReport() {
+    
+    const allPeopleInGroups = Object.values(appState.dutyAssignments).flat();
+    
+    const uniquePeopleIds = new Set(allPeopleInGroups.map(p => p.id));
+    const allPeople = Array.from(uniquePeopleIds)
+                           .map(id => allPeopleInGroups.find(p => p.id === id))
+                           .slice(0, 10);
+    
+    if (allPeople.length === 0) {
+        zobrazOznamenie("Priraďte aspoň jedného zamestnanca alebo skupinu do kalendára.", TOAST_ERROR);
+        return;
     }
     
-    employeeDataCache.set(nameWithPhone, null); // Nenájdené
-    return null;
-}
-
-/**
- * Získa čisté meno zamestnanca.
- * @param {string} fullName - Text z bunky (napr. "Ing. Vladimír Melikant, 0911580860")
- * @returns {string} - Čisté meno (napr. "Ing. Vladimír Melikant")
- */
-function extractName(fullName) {
-    const employee = findEmployeeData(fullName);
-    if (employee) {
-        return employee.meno; // Vráti čisté meno z JSON
-    }
-    // Fallback, ak bol zamestnanec pridaný/upravený manuálne
-    if (fullName.includes(',')) {
-        return fullName.split(',')[0].trim();
-    }
-    return fullName;
-}
-
-/**
- * Získa osobné číslo (coz) zamestnanca.
- * @param {string} fullName - Text z bunky (napr. "Ing. Vladimír Melikant, 0911580860")
- * @returns {string} - Osobné číslo (coz) alebo ""
- */
-function getPersonalNumber(fullName) {
-    const employee = findEmployeeData(fullName);
-    return employee ? (employee.coz || "") : "";
-}
-
-
-document.getElementById('saveButton').addEventListener('click', async function() {
-    
-    // Vyčistiť keš pre prípadné manuálne úpravy
-    employeeDataCache.clear();
-
     try {
-        // 1. Načítanie šablóny .docx z adresára files/
-        zobrazOznamenie('Načítavam šablónu...', 'info');
-        const response = await fetch('files/vykaz_pohotovosti.docx');
+        zobrazOznamenie('Načítavam šablónu...', TOAST_INFO);
+        const response = await fetch(DOCX_TEMPLATE_URL);
         if (!response.ok) {
             throw new Error('Nepodarilo sa načítať šablónu files/vykaz_pohotovosti.docx');
         }
         const arrayBuffer = await response.arrayBuffer();
         
-        // Pôvodný kód na spracovanie súboru
         const pizZipInstance = new PizZip(arrayBuffer);
+        const doc = new window.docxtemplater(pizZipInstance, {
+            paragraphLoop: true,
+            linebreaks: true,
+            nullGetter: () => "", 
+            delimiters: { start: '{{', end: '}}' }
+        });
+
+        const selectedMonth = appState.selectedMonth;
+        const selectedYear = appState.selectedYear;
         
-        const content = pizZipInstance.files['word/document.xml'].asText();
-        console.log('Obsah šablóny:', content.substr(0, 500)); 
+        const templateData = {};
+        templateData['mesiac'] = monthNames[selectedMonth];
+        templateData['rok'] = selectedYear;
 
-        const selectedMonth = parseInt(document.getElementById('monthSelect').value);
-        const selectedYear = parseInt(document.getElementById('yearSelect').value);
-        const monthNames = ["Január", "Február", "Marec", "Apríl", "Máj", "Jún", "Júl", "August", "September", "Október", "November", "December"];
-        
-        // Získanie zoznamu zamestnancov z jednotlivých skupín
-        const group1People = Array.from(document.getElementById('peopleList1').querySelectorAll('td')).map(cell => cell.textContent);
-        const group2People = Array.from(document.getElementById('peopleList2').querySelectorAll('td')).map(cell => cell.textContent);
-        const group3People = Array.from(document.getElementById('peopleList3').querySelectorAll('td')).map(cell => cell.textContent);
-        
-        // Vytvoríme mapu, ktorá bude obsahovať všetkých zamestnancov
-        const allPeople = [...new Set([...group1People, ...group2People, ...group3People])].slice(0, 10);
-         
-        // Ak nie sú vybraní žiadni ľudia, zastavíme
-        if (allPeople.length === 0) {
-            zobrazOznamenie("Najprv vyberte zamestnancov do výjazdových skupín.", "error");
-            return;
-        }
-
-        // Funkcia na určenie, ktorá skupina má službu v daný deň
-        function getGroupForDate(date) {
-            const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
-            let currentDate = new Date(firstDayOfMonth);
-            let groupIndex = 0;
-            
-            while (currentDate <= date) {
-                const nextSunday = new Date(currentDate);
-                // Nájde nasledujúcu nedeľu (alebo posledný deň v mesiaci)
-                const dayOfWeek = (currentDate.getDay() + 6) % 7; // 0=Po, 6=Ne
-                nextSunday.setDate(currentDate.getDate() + (6 - dayOfWeek));
-
-                // Orezanie na koniec mesiaca, ak nedeľa presahuje
-                if (nextSunday.getMonth() !== selectedMonth) {
-                    nextSunday.setDate(new Date(selectedYear, selectedMonth + 1, 0).getDate());
-                }
-                
-                // Ak dátum spadá do aktuálneho týždňa služieb
-                if (date >= currentDate && date <= nextSunday) {
-                    return groupIndex % 3;
-                }
-                
-                currentDate = new Date(nextSunday);
-                currentDate.setDate(currentDate.getDate() + 1);
-                groupIndex++;
-            }
-            
-            return -1; // Nenašla sa zodpovedajúca skupina
-        }
-
-        // Instead of creating a row for each day of the month,
-        // we'll create rows for each employee with their specific duty dates
         const employeeRows = {};
         const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
 
-        // Initialize rows for each employee
         allPeople.forEach(person => {
-            employeeRows[person] = { dates: [] };
+            employeeRows[person.id] = { person: person, dates: [] };
         });
 
-        // Populate each employee's dates
         for (let day = 1; day <= daysInMonth; day++) {
             const currentDate = new Date(selectedYear, selectedMonth, day);
-            const groupIndex = getGroupForDate(currentDate);
             
-            // Vyberáme správnu skupinu zamestnancov pre daný deň
-            let activeGroup = [];
-            if (groupIndex === 0) activeGroup = group1People;
-            else if (groupIndex === 1) activeGroup = group2People;
-            else if (groupIndex === 2) activeGroup = group3People;
+            const weekNumber = getWeekNumber(currentDate);
+            const reportingKey = `${selectedYear}-${weekNumber}`;
+            
+            const activeGroup = appState.dutyAssignments[reportingKey] || [];
             
             const formattedDate = `${day}.${selectedMonth + 1}.${selectedYear}`;
-            
-            // Add this date to each active employee's list
+            const overridesForWeek = appState.serviceOverrides[reportingKey] || {};
+
             activeGroup.forEach(person => {
-                if (employeeRows[person]) {
-                    employeeRows[person].dates.push({
+                let currentPersonId = person.id;
+                
+                if (overridesForWeek[currentPersonId]) {
+                    currentPersonId = overridesForWeek[currentPersonId];
+                }
+
+                if (employeeRows[currentPersonId]) {
+                    employeeRows[currentPersonId].dates.push({
                         date: formattedDate,
                         dayOfWeek: currentDate.getDay() // 0=Ne, 1=Po, ... 6=So
                     });
                 }
             });
         }
+        
+        allPeople.forEach((person, i) => {
+            if (i > 8) return; 
 
-        // Upravená časť: Vytvorenie dát pre šablónu vo formáte, ktorý očakáva
-        // Dôležité: upravené pre správne vloženie dátumov do placeholderov
-        const templateData = {};
-        
-        // Pridáme všeobecné údaje o mesiaci a roku
-        templateData['mesiac'] = monthNames[selectedMonth];
-        templateData['rok'] = selectedYear;
-        
-        
-        // Pridáme mená zamestnancov do príslušných placeholderov {{0}} až {{8}}
-        // a ich osobné čísla
-        allPeople.forEach((person, i) => {
-            if (i <= 8) {
-                // Použijeme nové funkcie na získanie dát z JSON
-                templateData[i.toString()] = extractName(person);
-                templateData[`oc${i}`] = getPersonalNumber(person);
-            }
-        });
-        
-        // Pridáme dátumy pre každého zamestnanca
-        // Pre každého zamestnanca vytvoríme pole s jeho dátumami
-        allPeople.forEach((person, i) => {
-            if (i <= 8) {
-                const dates = employeeRows[person]?.dates || [];
-                const personCoz = getPersonalNumber(person); // Získame COZ raz
+            templateData[i.toString()] = person.meno;
+            templateData[`oc${i}`] = person.coz || "";
+            
+            const dates = employeeRows[person.id]?.dates || [];
+            
+            let sumPracovneDni = 0, sumVikendy = 0, sumHodinyP5 = 0, sumHodinySn10 = 0;
+            
+            templateData[`dates${i}`] = dates.map(dateObj => {
+                const dayOfWeek = dateObj.dayOfWeek;
+                const isPracovnyDen = dayOfWeek >= 1 && dayOfWeek <= 5;
+                const isVikend = dayOfWeek === 0 || dayOfWeek === 6;
                 
-                // Vypočítame sumárne hodnoty pre daného zamestnanca
-                let sumPracovneDni = 0;  // Počet pracovných dní (počet popi)
-                let sumVikendy = 0;      // Počet víkendových dní (počet sonesv)
-                let sumHodinyP5 = 0;     // Celkový počet hodín počas pracovných dní
-                let sumHodinySn10 = 0;   // Celkový počet hodín počas víkendov
+                if (isPracovnyDen) { sumPracovneDni++; sumHodinyP5 += 16; }
+                if (isVikend) { sumVikendy++; sumHodinySn10 += 24; }
                 
-                // Pre placeholder {{dates0}}, {{dates1}}, atď. vložíme pole s dátumami
-                // Každý objekt v poli bude mať vlastnosť date, popi, sonesv, p5 a sn10
-                templateData[`dates${i}`] = dates.map(dateObj => {
-                    const dayOfWeek = dateObj.dayOfWeek;
-                    
-                    // Určíme, či je pracovný deň (1-5 = pondelok až piatok) alebo víkend (0, 6 = nedeľa, sobota)
-                    const isPracovnyDen = dayOfWeek >= 1 && dayOfWeek <= 5;
-                    const isVikend = dayOfWeek === 0 || dayOfWeek === 6;
-                    
-                    // Pripočítame hodnoty do súčtov
-                    if (isPracovnyDen) {
-                        sumPracovneDni++;
-                        sumHodinyP5 += 16;  // 16 hodín za každý pracovný deň
-                    }
-                    if (isVikend) {
-                        sumVikendy++;
-                        sumHodinySn10 += 24;  // 24 hodín za každý víkendový deň
-                    }
-                    
-                    return {
-                        date: dateObj.date,
-                        popi: isPracovnyDen ? 1 : "",
-                        sonesv: isVikend ? 1 : "",
-                        p5: isPracovnyDen ? 16 : "",     // 16 hodín pre pracovné dni, prázdne pre víkendy
-                        sn10: isVikend ? 24 : "",        // 24 hodín pre víkendy, prázdne pre pracovné dni
-                        oc: personCoz                    // Pridáme osobné číslo k dátumu
-                    };
-                });
-                
-                // Pridáme sumárne hodnoty do dátového objektu pre daného zamestnanca
-                templateData[`sum1${i}`] = sumPracovneDni > 0 ? sumPracovneDni : "";
-                templateData[`sum2${i}`] = sumVikendy > 0 ? sumVikendy : "";
-                templateData[`sum3${i}`] = sumHodinyP5 > 0 ? sumHodinyP5 : "";
-                templateData[`sum4${i}`] = sumHodinySn10 > 0 ? sumHodinySn10 : "";
-            }
-        });
-        
-        // Pre debug účely - vypisujeme hodnoty, ktoré sa budú vkladať do šablóny
-        console.log("Dáta na vloženie do šablóny:", JSON.stringify(templateData, null, 2));
-        
-        // Vytvorenie nových inštancií
-        try {
-            const doc = new window.docxtemplater(pizZipInstance, {
-                paragraphLoop: true,
-                linebreaks: true,
-                nullGetter: () => "", 
-                delimiters: { start: '{{', end: '}}' }
+                return {
+                    date: dateObj.date,
+                    popi: isPracovnyDen ? 1 : "",
+                    sonesv: isVikend ? 1 : "",
+                    p5: isPracovnyDen ? 16 : "",
+                    sn10: isVikend ? 24 : "",
+                    oc: person.coz || ""
+                };
             });
             
-            // Render dokumentu
-            doc.render(templateData);
-            const docBuffer = doc.getZip().generate({ type: 'blob' });
-            saveAs(docBuffer, `vykaz_pohotovosti_${monthNames[selectedMonth]}_${selectedYear}.docx`);
-            
-            zobrazOznamenie(`Súbor vykaz_pohotovosti_${monthNames[selectedMonth]}_${selectedYear}.docx bol úspešne vytvorený`);
-        } catch (error) {
-            console.error('Chyba pri renderovaní šablóny:', error);
-            
-            if (error.properties && error.properties.errors) {
-                console.error('Detaily chyby:', error.properties.errors);
-                const missingTags = error.properties.errors.filter(e => e.id === 'scope_parser_unresolved_tag')
-                                                          .map(e => e.properties.value)
-                                                          .join(', ');
-                zobrazOznamenie(`Chyba v šablóne: Nenašli sa tagy: ${missingTags}`, 'error');
-            } else {
-                 zobrazOznamenie('Nastala chyba pri generovaní dokumentu: ' + error.message, 'error');
-            }
-        }
+            templateData[`sum1${i}`] = sumPracovneDni > 0 ? sumPracovneDni : "";
+            templateData[`sum2${i}`] = sumVikendy > 0 ? sumVikendy : "";
+            templateData[`sum3${i}`] = sumHodinyP5 > 0 ? sumHodinyP5 : "";
+            templateData[`sum4${i}`] = sumHodinySn10 > 0 ? sumHodinySn10 : "";
+        });
+
+        doc.render(templateData);
+        const docBuffer = doc.getZip().generate({ type: 'blob' });
+        saveAs(docBuffer, `vykaz_pohotovosti_${monthNames[selectedMonth]}_${selectedYear}.docx`);
+        
+        zobrazOznamenie(`Súbor bol úspešne vytvorený.`, TOAST_SUCCESS);
         
     } catch (error) {
-        console.error('Chyba pri spracovaní súboru:', error);
-        zobrazOznamenie('Nastala chyba pri spracovaní súboru: ' + error.message, 'error');
+        console.error('Chyba pri spracovaní DOCX súboru:', error);
+        if (error.properties && error.properties.errors) {
+            console.error('Detaily chyby:', error.properties.errors);
+        }
+        zobrazOznamenie('Nastala chyba pri generovaní dokumentu: ' + error.message, TOAST_ERROR);
     }
-});
+}
 
-function zobrazOznamenie(text, typ = 'success') {
+
+// --- NOTIFIKÁCIE (Toast) ---
+// (BEZO ZMENY)
+
+function zobrazOznamenie(text, typ = TOAST_SUCCESS) {
     const oznamenie = document.createElement('div');
     oznamenie.className = `oznamenie ${typ}`;
     oznamenie.textContent = text;
-    
-    oznamenie.style.position = 'fixed';
-    oznamenie.style.bottom = '20px';
-    oznamenie.style.right = '20px';
-    oznamenie.style.padding = '15px';
-    oznamenie.style.borderRadius = '5px';
-    oznamenie.style.zIndex = '1000';
-    oznamenie.style.minWidth = '250px';
-    oznamenie.style.maxWidth = '80%';
-    oznamenie.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-    
-    if (typ === 'success') {
-        oznamenie.style.backgroundColor = '#4CAF50';
-        oznamenie.style.color = 'white';
-    } else if (typ === 'error') {
-        oznamenie.style.backgroundColor = '#f44336';
-        oznamenie.style.color = 'white';
-    } else { // 'info'
-        oznamenie.style.backgroundColor = '#2196F3';
-        oznamenie.style.color = 'white';
-    }
-    
     document.body.appendChild(oznamenie);
     
     setTimeout(() => {
-        oznamenie.style.opacity = '0';
-        oznamenie.style.transition = 'opacity 1s ease';
-        
-        setTimeout(() => {
+        oznamenie.classList.add('show');
+    }, 10);
+
+    setTimeout(() => {
+        oznamenie.classList.remove('show');
+        oznamenie.addEventListener('transitionend', () => {
             if (document.body.contains(oznamenie)) {
                 document.body.removeChild(oznamenie);
             }
-        }, 1000);
-    }, 2000);
+        });
+    }, 3000);
+}
+
+
+// --- POMOCNÉ FUNKCIE PRE NAČÍTANIE FONTU ---
+
+/**
+ * (OPRAVENÉ) Načíta dáta fontu a skonvertuje ich na Base64
+ */
+async function loadFontData() {
+    if (customFontBase64) return; 
+
+    try {
+        const fontUrl = FONT_URL;
+        const response = await fetch(fontUrl);
+        if (!response.ok) throw new Error(`HTTP chyba! status: ${response.status}`);
+        
+        const fontBuffer = await response.arrayBuffer();
+        customFontBase64 = arrayBufferToBase64(fontBuffer);
+        console.log('Vlastný font pre PDF bol úspešne načítaný.');
+        
+    } catch (error) {
+        console.error('Chyba pri načítaní fontu pre PDF:', error);
+    }
+}
+
+/**
+ * (OPRAVENÉ) Konvertuje ArrayBuffer na Base64 string
+ */
+function arrayBufferToBase64(buffer) {
+    let binary = '';
+    // --- OPRAVA CHYBY ---
+    // const bytes = new UintArray(buffer); // PÔVODNÝ KÓD (chybný)
+    const bytes = new Uint8Array(buffer); // NOVÝ KÓD (opravený)
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
 }
