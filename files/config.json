@@ -1,29 +1,38 @@
-[
-  {
-    "skupina": "skupina 1",
-    "moznosti": [
-      { "id": "group1", "meno": "Celá skupina", "telefon": null },
-      { "id": "0", "meno": "Ing. Vladimír Melikant", "telefon": "0911580860", "coz": "4007925" },
-      { "id": "1", "meno": "Mgr. Denis Mičovský", "telefon": "0911133488", "coz": "2744824" },
-      { "id": "2", "meno": "Ing. Slivia Sklenárová", "telefon": "0902368479", "coz": "2739587" }
-    ]
+{
+  "podpisy": {
+    "zodpoveda": {
+      "meno": "Ing. Vladimír Melikant",
+      "funkcia": "vedúci oddelenia COaKP"
+    },
+    "schvaluje": {
+      "meno": "Mgr. Mário Banič",
+      "funkcia": "vedúci odboru"
+    }
   },
-  {
-    "skupina": "skupina 2",
-    "moznosti": [
-      { "id": "group2", "meno": "Celá skupina", "telefon": null },
-      { "id": "3", "meno": "Mgr. Mário Banič", "telefon": "0903605647", "coz": "2740901" },
-      { "id": "4", "meno": "Mgr. Maroš Plieštik", "telefon": "0910904277", "coz": "2723878" },
-      { "id": "5", "meno": "Ing. Anetta Vereš Pšanecká", "telefon": "0907824736", "coz": "2725788" }
-    ]
-  },
-  {
-    "skupina": "skupina 3",
-    "moznosti": [
-      { "id": "group3", "meno": "Celá skupina", "telefon": null },
-      { "id": "6", "meno": "Mgr. Juraj Tuhársky", "telefon": "0903553116", "coz": "4000955" },
-      { "id": "7", "meno": "Mgr. Ján Kubaliak", "telefon": "0903805416", "coz": "4000883" },
-      { "id": "8", "meno": "Mgr. Miriam Galková", "telefon": "0904394007", "coz": "4006627" }
-    ]
-  }
-]
+  "zamestnanci": [
+    {
+      "skupina": "Skupina A",
+      "moznosti": [
+        { "id": "p1", "meno": "Ing. Vladimír Melikant", "telefon": "0911 580 860", "coz": "4007925" },
+        { "id": "p2", "meno": "Mgr. Denis Mičovský", "telefon": "0911 133 488", "coz": "2744824" },
+        { "id": "p3", "meno": "Ing. Slivia Sklenárová", "telefon": "0902 368 479", "coz": "2739587" }
+      ]
+    },
+    {
+      "skupina": "Skupina B",
+      "moznosti": [
+        { "id": "p4", "meno": "Mgr. Mário Banič", "telefon": "0903 605 647", "coz": "2740901" },
+        { "id": "p5", "meno": "Mgr. Maroš Plieštik", "telefon": "0910 904 277", "coz": "2723878" },
+        { "id": "p6", "meno": "Ing. Anetta Vereš Pšanecká", "telefon": "0907 824 736", "coz": "2725788" }
+      ]
+    },
+    {
+      "skupina": "Skupina C",
+      "moznosti": [
+        { "id": "p7", "meno": "Mgr. Juraj Tuhársky", "telefon": "090 355 3116", "coz": "4000955" },
+        { "id": "p8", "meno": "Mgr. Ján Kubaliak", "telefon": "0903 805 416", "coz": "4000883" },
+        { "id": "p9", "meno": "Mgr. Miriam Galková", "telefon": "0904 394 007", "coz": "4006627" }
+      ]
+    }
+  ]
+}
