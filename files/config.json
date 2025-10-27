@@ -29,7 +29,7 @@
     {
       "skupina": "Skupina C",
       "moznosti": [
-        { "id": "p7", "meno": "Mgr. Juraj Tuhársky", "telefon": "090 355 3116", "coz": "4000955" },
+        { "id": "p7", "meno": "Mgr. Juraj Tuhársky", "telefon": "0903 553 116", "coz": "4000955" },
         { "id": "p8", "meno": "Mgr. Ján Kubaliak", "telefon": "0908 277 943", "coz": "4000883" },
         { "id": "p9", "meno": "Mgr. Miriam Galková", "telefon": "0904 394 007", "coz": "4006627" }
       ]
@@ -37,3 +37,4 @@
   ]
 
 }
+
