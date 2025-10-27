@@ -15,7 +15,7 @@
       "moznosti": [
         { "id": "p1", "meno": "Ing. Vladimír Melikant", "telefon": "0911 580 860", "coz": "4007925" },
         { "id": "p2", "meno": "Mgr. Denis Mičovský", "telefon": "0911 133 488", "coz": "2744824" },
-        { "id": "p3", "meno": "Ing. Slivia Sklenárová", "telefon": "0902 368 479", "coz": "2739587" }
+        { "id": "p3", "meno": "Ing. Silvia Sklenárová", "telefon": "0902 368 479", "coz": "2739587" }
       ]
     },
     {
@@ -30,9 +30,10 @@
       "skupina": "Skupina C",
       "moznosti": [
         { "id": "p7", "meno": "Mgr. Juraj Tuhársky", "telefon": "090 355 3116", "coz": "4000955" },
-        { "id": "p8", "meno": "Mgr. Ján Kubaliak", "telefon": "0903 805 416", "coz": "4000883" },
+        { "id": "p8", "meno": "Mgr. Ján Kubaliak", "telefon": "0908 277 943", "coz": "4000883" },
         { "id": "p9", "meno": "Mgr. Miriam Galková", "telefon": "0904 394 007", "coz": "4006627" }
       ]
     }
   ]
+
 }
