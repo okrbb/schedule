@@ -639,7 +639,8 @@ function initCalendarSortable() {
 
 /**
  * (UPRAVENÉ) Handler pre D&D udalosť 'onAdd' (pustenie položky do bunky kalendára)
- * Zjednodušené, aby spracovalo iba presun skupiny.
+ * Logika cyklu bola upravená, aby umožnila priradenie služieb presahujúcich
+ * do januára nasledujúceho roka.
  */
 function handleDragToCalendar(evt) {
     const { item, to } = evt; 
@@ -647,10 +648,10 @@ function handleDragToCalendar(evt) {
     
     if (!weekKey) return;
 
-    // Kontrola, či je to skupina (aj keď by už iné nemalo ísť presunúť)
+    // Kontrola, či je to skupina
     const isGroupDrag = item.classList.contains(CSS_GROUP_DRAG_ITEM);
     if (!isGroupDrag) {
-        item.remove(); // Odstránime nechcenú položku (ak by sa sem nejaká dostala)
+        item.remove();
         return; 
     }
 
@@ -661,8 +662,6 @@ function handleDragToCalendar(evt) {
 
     item.remove(); // Odstráni "ghost" element z kalendára
 
-    // --- Logika pre priradenie skupiny (predtým v bloku 'if (isGroupDrag)') ---
-    
     const [startYear, startWeek] = weekKey.split('-').map(Number);
     const targetMonth = appState.selectedMonth; 
     const targetYear = appState.selectedYear; 
@@ -670,21 +669,35 @@ function handleDragToCalendar(evt) {
     let currentYear = startYear;
     let currentWeek = startWeek;
 
-    while (true) {
+    // Pôvodné 'while(true)' nahradené bezpečným 'for' cyklom s poistkou (max 52 iterácií = 3 roky)
+    for (let i = 0; i < 52; i++) {
         const mondayOfCurrentWeek = getDateOfISOWeek(currentWeek, currentYear);
 
-        if (mondayOfCurrentWeek.getFullYear() > targetYear) {
-            break;
+        // --- OPRAVENÁ LOGIKA PRE UKONČENIE CYKLU ---
+        // Pôvodné prísne 'if... break;' boli odstránené.
+        // Nová logika povoľuje "presah" do januára nasledujúceho roka,
+        // ale zastaví sa, akonáhle sa dostane do februára (alebo ďalej).
+
+        // 1. Skontrolujeme, či sme neprekročili cieľový rok o VIAC ako 1
+        if (mondayOfCurrentWeek.getFullYear() > targetYear + 1) {
+            break; // Sme napr. v roku 2027, keď sme začali v 2025
         }
-        if (mondayOfCurrentWeek.getFullYear() === targetYear && mondayOfCurrentWeek.getMonth() > targetMonth) {
-            break;
+
+        // 2. Skontrolujeme, či sme presne o 1 rok ďalej
+        if (mondayOfCurrentWeek.getFullYear() === targetYear + 1) {
+            // A ak áno, či sme už ďalej ako v Januári (index mesiaca 0)
+            if (mondayOfCurrentWeek.getMonth() > 0) {
+                break; // Sme v Februári (alebo neskôr) 2026, končíme.
+            }
         }
-        
+        // --- KONIEC OPRAVENEJ LOGIKY ---
+
         const currentKey = `${currentYear}-${currentWeek}`;
         appState.dutyAssignments[currentKey] = employeesToAssign;
 
         currentWeek += 3;
 
+        // (Volanie getISOWeeks už je opravené nižšie)
         const weeksInYear = getISOWeeks(currentYear);
         if (currentWeek > weeksInYear) {
             currentWeek = currentWeek - weeksInYear;
@@ -716,11 +729,14 @@ function getWeekNumber(date) {
 
 /**
  * Získa celkový počet ISO týždňov v danom roku.
- * (BEZO ZMENY)
+ * (OPRAVENÉ - číta 'week' property z vráteného objektu)
  */
 function getISOWeeks(year) {
     const date = new Date(year, 11, 28); 
-    return getWeekNumber(date);
+    // getWeekNumber teraz vracia { week: ..., year: ... }
+    // Musíme vrátiť len počet týždňov.
+    const weekInfo = getWeekNumber(date);
+    return weekInfo.week;
 }
 
 /**
