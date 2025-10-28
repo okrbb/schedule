@@ -509,8 +509,9 @@ function renderCalendar() {
     for (let day = 1; day <= lastDay.getDate(); day++) {
         const date = new Date(currentYear, currentMonth, day);
         const dayOfWeek = (date.getDay() + 6) % 7; 
-        const weekNumber = getWeekNumber(date);
-        const reportingKey = `${currentYear}-${weekNumber}`; 
+        const weekInfo = getWeekNumber(date);
+        const weekNumber = weekInfo.week; // Ponechané pre logiku 'weekCellContent'
+        const reportingKey = `${weekInfo.year}-${weekInfo.week}`; // Použije správny ISO rok 
         
         if (reportingKey !== lastRenderedWeekKey) {
             
@@ -702,9 +703,15 @@ function handleDragToCalendar(evt) {
 function getWeekNumber(date) {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    
+    // Uložíme si správny ISO rok
+    const isoYear = d.getUTCFullYear();
+    
+    const yearStart = new Date(Date.UTC(isoYear, 0, 1));
     const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return weekNo;
+    
+    // Vrátime objekt namiesto jednoduchého čísla
+    return { week: weekNo, year: isoYear };
 }
 
 /**
@@ -797,8 +804,8 @@ async function showSchedulePreview() {
         const lightGray = [230, 230, 230];
         
         while (currentDate.getMonth() === selectedMonth) {
-            const weekNumber = getWeekNumber(currentDate);
-            const reportingKey = `${selectedYear}-${weekNumber}`;
+            const weekInfo = getWeekNumber(currentDate);
+            const reportingKey = `${weekInfo.year}-${weekInfo.week}`; // Použije správny ISO rok
             
             const activeGroup = appState.dutyAssignments[reportingKey] || [];
             
@@ -1022,8 +1029,8 @@ async function generateDocxReport() {
         for (let day = 1; day <= daysInMonth; day++) {
             const currentDate = new Date(selectedYear, selectedMonth, day);
             
-            const weekNumber = getWeekNumber(currentDate);
-            const reportingKey = `${selectedYear}-${weekNumber}`;
+            const weekInfo = getWeekNumber(currentDate);
+            const reportingKey = `${weekInfo.year}-${weekInfo.week}`; // Použije správny ISO rok
             
             const activeGroup = appState.dutyAssignments[reportingKey] || [];
             
