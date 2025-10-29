@@ -1139,7 +1139,7 @@ function zobrazOznamenie(text, typ = TOAST_SUCCESS) {
                 document.body.removeChild(oznamenie);
             }
         });
-    }, 3000);
+    }, 2000);
 }
 
 
@@ -1178,4 +1178,5 @@ function arrayBufferToBase64(buffer) {
         binary += String.fromCharCode(bytes[i]);
     }
     return window.btoa(binary);
+
 }
