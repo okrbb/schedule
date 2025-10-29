@@ -1,90 +1,253 @@
+/* --- APLIKÁCIA ROZPIS POHOTOVOSTI --- */
+
+/* === 1. CSS CUSTOM PROPERTIES (PREVZATÉ Z "CESTOVNÝ PRÍKAZ") === */
 :root {
-  --primary-color: #ecf0f1;
-  --secondary-color: #2c3e50;
-  --accent-color: #3498db;
-  --text-color: #ecf0f1;
-  --text-color-dark: #333;
-  --bg-color-light: #34495e; /* Pozadie boxov */
-  --border-radius: 8px;
-  --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --transition: all 0.3s ease;
-  --hover-color: #2980b9;
-  --destructive-color: #e74c3c;
-  --destructive-hover-color: #c0392b;
-  --font-family: 'Poppins', sans-serif;
-  --duty-color: #f1c40f; /* NOVÉ: Farba pre hlásenia, zhodná s .duty-column */
+    /* Farby - Warm Modern Palette 2025 */
+    --mocha: #6B5A4F;
+    --mocha-light: #8B7766;
+    --mocha-dark: #4A3F35;
+    
+    --primary: #F3B200; /* Hlavná farba (zlatá/žltá) */
+    --primary-dark: #4338CA;
+    --primary-light: #6366F1;
+    
+    --accent: #003366; /* Akcentová farba (tmavomodrá) */
+    --accent-light: #F472B6;
+    
+    /* Neutrals */
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+    
+    /* Semantic Colors */
+    --text-primary: var(--gray-900);
+    --text-secondary: var(--gray-600);
+    --text-tertiary: var(--gray-500);
+    
+    --bg-body: #FAFAFA; /* Pozadie celej stránky (svetlé) */
+    --bg-panel: #FFFFFF; /* Pozadie panelov (biele) */
+    --bg-elevated: #FFFFFF; /* Pozadie pre "plávajúce" prvky */
+    
+    --border: var(--gray-200);
+    --border-focus: var(--primary-light);
+    
+    --destructive-color: #e74c3c;
+    --destructive-hover-color: #c0392b;
+    --duty-color: var(--primary); /* Farba pre hlásenia */
+
+    /* Typography */
+    --font-heading: 'Space Grotesk', -apple-system, system-ui, sans-serif;
+    --font-body: 'Inter', -apple-system, system-ui, sans-serif;
+    
+    /* Spacing & Sizing */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    
+    /* Shadows - 2025 Soft & Layered */
+    --shadow-sm: 
+        0 1px 2px 0 rgba(0, 0, 0, 0.03),
+        0 1px 3px 0 rgba(0, 0, 0, 0.02);
+    --shadow-md: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.06),
+        0 2px 4px -2px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 
+        0 10px 15px -3px rgba(0, 0, 0, 0.08),
+        0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.08),
+        0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    
+    /* Transitions */
+    --transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Mapovanie starých premenných na nové */
+    --primary-color: var(--gray-100); /* Svetlé pozadie pre prvky */
+    --secondary-color: var(--gray-800); /* Tmavé pozadie pre vnútorné časti */
+    --accent-color: var(--accent); /* Nová akcentová modrá */
+    --text-color: var(--gray-50); /* Svetlý text na tmavom pozadí */
+    --text-color-dark: var(--text-primary); /* Tmavý text na svetlom pozadí */
+    --bg-color-light: var(--bg-panel); /* Hlavná farba panelov */
+    --border-radius: var(--radius-md); /* Zjednotený radius */
+    --box-shadow: var(--shadow-md);
+    --transition: var(--transition-base);
+    --hover-color: var(--accent-light);
+    --font-family: var(--font-body);
 }
 
+/* === 3. ANIMATED BACKGROUND ORBS (PREVZATÉ) === */
+.background-orbs {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.3;
+    animation: float 20s ease-in-out infinite;
+}
+
+.orb-1 {
+    width: 500px;
+    height: 500px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    top: -200px;
+    left: -200px;
+    animation-delay: 0s;
+}
+
+.orb-2 {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, var(--accent), var(--primary-light));
+    bottom: -150px;
+    right: -150px;
+    animation-delay: 7s;
+}
+
+.orb-3 {
+    width: 300px;
+    height: 300px;
+    background: linear-gradient(135deg, var(--mocha), var(--primary));
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation-delay: 14s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(30px, -30px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+}
+
+
+/* === Základné štýly === */
 body {
   font-family: var(--font-family);
   margin: 0;
   padding: 0;
-  background-color: var(--secondary-color);
-  color: var(--text-color);
+  background-color: transparent; /* <-- TOTO JE OPRAVA */
+  color: var(--text-color-dark); /* POUŽITÝ NOVÝ TEXT */
   line-height: 1.6;
 }
 
 /* --- NOVÉ HLAVNÉ ROZLOŽENIE --- */
 .container {
   display: grid;
-  /* Stĺpec pre kalendár | Zvyšok pre hlavný obsah */
   grid-template-columns: 630px 1fr;
   height: 100vh;
   margin: 0;
-  padding: 0;
+  padding: 20px; /* PRIDANÉ ODSADENIE OKOLO CELEJ APLIKÁCIE */
+  gap: 20px; /* PRIDANÁ MEDZERA MEDZI STĹPCAMI */
   max-width: none;
+  box-sizing: border-box; /* Zabezpečí správny výpočet veľkosti */
 }
 
 .sidebar-layout {
-  height: 100vh;
-  overflow-y: auto; /* Posuvný kalendár */
-  /* background-color: var(--bg-color-light); */ /* ODSTRÁNENÉ */
-  padding: 20px;
-  /* border-right: 1px solid var(--secondary-color); */ /* ODSTRÁNENÉ */
+  height: calc(100vh - 40px); /* (100vh - padding) */
+  overflow-y: auto;
+  padding: 0; /* Vnútorný padding už má .calendar-table */
+  border-radius: var(--radius-xl); /* <-- PRIDANÉ PRE OPRAVU ROHOV */
+  
+  /* ODSTRÁNENÉ PÔVODNÉ ŠTÝLY */
+  /* background-color: var(--bg-color-light); */
+  /* border-right: 1px solid var(--secondary-color); */
 }
 
 .main-content-layout {
-  height: 100vh;
-  overflow-y: auto; /* Posuvný hlavný obsah */
-  padding: 20px;
+  height: calc(100vh - 40px); /* (100vh - padding) */
+  overflow-y: auto;
+  padding: 0; /* Padding je riešený vnútorne */
   display: flex;
   flex-direction: column;
+  border-radius: var(--radius-xl); /* <-- PRIDANÉ PRE OPRAVU ROHOV */
 }
 
 .dnd-wrapper {
   display: grid;
-  /* UPRAVENÉ: Už je tu len jeden stĺpec pre zamestnancov */
   grid-template-columns: 1fr; 
   gap: 20px;
-  flex-grow: 1; /* Vyplní zvyšné miesto pod ovládacím panelom */
-  min-height: 0; /* PRIDANÉ: Kľúčové pre správne scrollovanie */
+  flex-grow: 1;
+  min-height: 0;
 }
 /* --- KONIEC HLAVNÉHO ROZLOŽENIA --- */
 
 
 .top-section {
   display: flex;
-  /* UPRAVENÉ: H1 a ovládače sú pod sebou */
   flex-direction: column; 
   justify-content: space-between;
   margin-bottom: 20px;
-  padding: 15px;
-  background-color: var(--bg-color-light);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
+  padding: 20px; /* Zvýšený padding */
+  
+  /* --- APLIKOVANÝ NOVÝ DIZAJN PANELU --- */
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-xl); /* Väčší radius */
+  box-shadow: var(--shadow-lg); /* Jemnejší tieň */
+  border: 1px solid var(--border);
+  
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-/* NOVÝ ŠTÝL: H1 presunutý do .top-section */
 .top-section h1 {
   margin-top: 0;
-  color: var(--primary-color);
+  color: var(--text-primary);
   border-bottom: 2px solid var(--accent-color);
   padding-bottom: 10px;
   font-size: 1.8rem;
-  margin-bottom: 15px; /* Medzera medzi titulkom a ovládačmi */
+  margin-bottom: 15px;
+  font-family: var(--font-heading);
+
+  /* --- PRIDANÉ: Pre zarovnanie loga --- */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* --- NOVÉ: Logo na konci riadku H1 --- */
+.top-section h1::after {
+  content: ''; /* Povinné pre pseudo-element */
+  display: block;
+
+  /* --- Tu si upravte veľkosť loga podľa potreby --- */
+  width: 81px; 
+  height: 81px;
+  /* ---------------------------------------------- */
+
+  background-image: url('logo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center right; /* Zarovná logo doprava */
 }
 
 .selectors {
@@ -95,38 +258,62 @@ body {
 
 .selMonth, .selYear {
   padding: 10px;
-  border-radius: var(--border-radius);
-  border: 1px solid #ccc;
+  border-radius: var(--radius-md); /* Zjednotený radius */
+  border: 1px solid var(--border); /* Nový border */
   transition: var(--transition);
   font-family: var(--font-family);
+  background: var(--gray-50); /* Svetlé pozadie */
+  color: var(--text-primary);
 }
 
 .selMonth:hover, .selYear:hover {
   border-color: var(--accent-color);
 }
+.selMonth:focus, .selYear:focus {
+  outline: 2px solid var(--border-focus);
+  border-color: transparent;
+}
 
-/* --- ŠTÝLY TLAČIDIEL (BEZO ZMENY) --- */
+/* --- ŠTÝLY TLAČIDIEL (UPRAVENÉ PRE NOVÝ DIZAJN) --- */
 .shbtn {
   border: none;
   padding: 10px 15px;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: var(--transition);
   font-weight: 600;
-  font-family: var(--font-family);
+  font-family: var(--font-body);
+  box-shadow: var(--shadow-sm);
+
+  /* --- NOVÉ: Pre zarovnanie ikony a textu --- */
+  display: inline-flex; /* Umožní flexbox layout */
+  align-items: center; /* Vertikálne zarovná na stred */
+  justify-content: center; /* Horizontálne zarovná na stred (ak je dostatok miesta) */
+  gap: 8px; /* Medzera medzi ikonou a textom */
 }
 
 .shbtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-md); /* Výraznejší tieň */
 }
 
 .shbtn--primary {
-  background-color: var(--accent-color);
+  /* OPRAVA: Správny žlto-modrý gradient */
+  /* Smer 90deg je zľava doprava, presne ako na obrázku */
+  background-image: linear-gradient(90deg, var(--primary), var(--accent));
+  background-color: var(--primary); /* Fallback */
   color: white;
+
+  /* Nastavenie pre jemný posun gradientu pri hover */
+  background-size: 150% auto;
+  background-position: left center;
+
+  /* Pridáme 'background-position' do transition, aby bol posun plynulý */
+  transition: var(--transition), background-position 0.3s ease;
 }
 .shbtn--primary:hover {
-  background-color: var(--hover-color);
+  background-position: right center; /* Posunie gradient doprava */
+  /* Efekt zdvihnutia a tieňa je zdedený z .shbtn:hover */
 }
 
 .shbtn--destructive {
@@ -142,27 +329,21 @@ body {
 /* --- KONIEC ŠTÝLOV TLAČIDIEL --- */
 
 
-/* --- ODSTRÁNENÉ PÔVODNÉ ROZLOŽENIE --- */
-/* .main-layout, .left-column, .right-column boli odstránené */
-
-
 /* --- RESPONZÍVNE SPRÁVANIE PRE NOVÉ ROZLOŽENIE --- */
 @media (max-width: 1024px) {
   .container {
-    grid-template-columns: 1fr; /* Všetko pod sebou na tabletoch */
+    grid-template-columns: 1fr;
     height: auto;
+    padding: 15px; /* Menší padding na mobile */
+    gap: 15px;
   }
   .sidebar-layout, .main-content-layout {
     height: auto;
     overflow-y: visible;
   }
-  /* .dnd-wrapper už je 1fr z hlavného pravidla */
 }
 
 @media (max-width: 768px) {
-  /* .container už je 1fr z predošlého pravidla */
-  /* .dnd-wrapper už je 1fr z predošlého pravidla */
-  
   .top-section, .selectors {
     flex-direction: column;
     align-items: stretch;
@@ -170,8 +351,6 @@ body {
   .selMonth, .selYear, .shbtn {
     width: 100%;
   }
-
-  /* NOVÉ: Na mobiloch dáme stĺpce zamestnancov pod seba */
   .available-people-grid {
     grid-template-columns: 1fr !important;
   }
@@ -181,22 +360,24 @@ body {
 
 /* --- ŠTÝLY PRE KALENDÁR --- */
 .calendar-table {
-  /* UPRAVENÉ: Kalendár je teraz v boxe */
-  background-color: var(--bg-color-light); /* PRIDANÉ */
-  border-radius: var(--border-radius); /* UPRAVENÉ (z 0) */
-  box-shadow: var(--box-shadow); /* UPRAVENÉ (z none) */
-  padding: 15px; /* UPRAVENÉ (z 0), aby zodpovedalo .top-section */
+  /* --- APLIKOVANÝ NOVÝ DIZAJN PANELU --- */
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  padding: 20px; /* Zvýšený padding */
   height: auto;
 }
 
 .calendar-table h2 {
-  color: var(--primary-color);
+  color: var(--text-primary); /* Nová farba textu */
   margin-top: 0;
   border-bottom: 2px solid var(--accent-color);
   padding-bottom: 10px;
+  font-family: var(--font-heading);
 }
 
-/* Štýly pre tabuľku v kalendári (BEZO ZMENY) */
+/* Štýly pre tabuľku v kalendári */
 .calendar-table table {
   width: 100%;
   border-collapse: collapse;
@@ -204,17 +385,19 @@ body {
 .calendar-table th, .calendar-table td {
   padding: 8px;
   text-align: left;
-  border-bottom: 1px solid var(--secondary-color);
+  border-bottom: 1px solid var(--border); /* Nový border */
+  color: var(--text-secondary); /* Jemnejšia farba textu */
 }
 .calendar-table th {
-  color: var(--accent-color);
+  color: var(--accent); /* Nová akcentová */
+  font-family: var(--font-heading);
 }
 .new-week {
   border-top: 2px solid var(--accent-color);
 }
 .duty-column {
   font-weight: bold;
-  color: var(--duty-color); /* Použitá premenná */
+  color: var(--duty-color);
   width: 100px;
 }
 
@@ -226,84 +409,85 @@ body {
 
 
 /* --- ŠTÝLY PRE DRAG & DROP (UPRAVENÉ) --- */
-/* UPRAVENÉ: .groups-container odstránený zo selektora */
 .people-container {
   display: flex;
   flex-direction: column;
   gap: 20px;
-
-  height: 100%; /* Roztiahne stĺpec na plnú výšku rodiča */
-  overflow-y: auto; /* Zapne vertikálne scrollovanie */
-  /* scrollbar-width: auto; */ /* TENTO RIADOK ODSTRÁŇTE ALEBO ZAKOMENTUJTE */
+  height: 100%;
+  overflow-y: auto;
+  border-radius: var(--radius-xl); /* <-- PRIDANÉ PRE OPRAVU ROHOV */
 }
 
 .container-people-dnd {
-  background-color: var(--bg-color-light);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
+  /* --- APLIKOVANÝ NOVÝ DIZAJN PANELU --- */
+  background-color: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
   padding: 20px;
   
-  /* NOVÉ: D&D kontajner sa musí roztiahnuť, aby vyplnil priestor */
   display: flex;
   flex-direction: column;
   flex-grow: 1;
 }
 
 .container-people-dnd h3 {
-  color: var(--primary-color);
+  color: var(--text-primary); /* Nová farba textu */
   margin-top: 0;
   border-bottom: 2px solid var(--accent-color);
   padding-bottom: 10px;
+  font-family: var(--font-heading);
 }
 
 .dnd-hint {
   font-size: 0.8rem;
-  color: var(--text-color);
-  opacity: 0.6;
+  color: var(--text-tertiary); /* Jemnejšia farba */
+  opacity: 1;
   margin-top: -10px;
 }
 
 /* --- NOVÉ ŠTÝLY PRE 3 STĹPCE ZAMESTNANCOV --- */
 .available-people-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr; /* Tri stĺpce */
-  gap: 15px; /* Medzera medzi stĺpcami */
-  flex-grow: 1; /* Vyplní priestor v .container-people-dnd */
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 15px;
+  flex-grow: 1;
 }
 
 .available-people-grid > div {
-  /* Toto je wrapper pre (Nadpis + Zoznam) */
   display: flex;
   flex-direction: column;
-  min-width: 0; /* Oprava pre grid flexbox */
+  min-width: 0;
 }
 
 .people-list-dnd {
-  background-color: var(--secondary-color);
-  border-radius: var(--border-radius);
+  background-color: var(--gray-50); /* Svetlé pozadie pre D&D zónu */
+  border-radius: var(--radius-md);
   padding: 10px;
   transition: var(--transition);
-  flex-grow: 1; /* Zoznam vyplní miesto v stĺpci */
-  min-height: 150px; /* Dôležité pre D&D, aj keď je zoznam prázdny */
+  flex-grow: 1;
+  min-height: 150px;
+  border: 1px dashed var(--border); /* Čiarkovaný okraj */
 }
 /* --- KONIEC NOVÝCH ŠTÝLOV --- */
 
 
 .people-list-dnd:hover {
-  background-color: #3a506b;
+  background-color: var(--gray-100);
+  border-color: var(--accent);
 }
 
 .employee-item {
-  background-color: var(--bg-color-light);
-  color: var(--text-color);
+  background-color: var(--bg-elevated); /* Biela */
+  color: var(--text-primary); /* Tmavý text */
   padding: 10px;
   margin-bottom: 5px;
-  border-radius: 5px;
-  border: 2px solid #4a6582; /* Zmenené z 1px na 2px pre konzistenciu */
-  /* --- ZMENA: kurzor 'grab' (uchopiť) zmenený na 'pointer' (ukazovák) --- */
+  border-radius: var(--radius-sm); /* Menší radius */
+  border: 2px solid var(--border); /* Svetlý border */
   cursor: pointer; 
   transition: var(--transition);
   font-size: 0.9rem;
+  box-shadow: var(--shadow-sm); /* Jemný tieň */
 }
 
 .employee-item:last-child {
@@ -312,21 +496,15 @@ body {
 
 .employee-item:hover {
   border-color: var(--accent-color);
-  background-color: #3e5770;
+  background-color: var(--gray-50);
+  box-shadow: var(--shadow-md);
 }
 
-/* --- TOTO JE NOVÝ ŠTÝL --- */
-/* Vizuálne odlíšenie zamestnanca, ktorý je už priradený 
-   (viditeľné v zozname dostupných) */
 .employee-item.is-assigned {
   border-color: var(--destructive-color);
+  opacity: 0.7; /* Znížená viditeľnosť */
 }
-/* --- KONIEC NOVÉHO ŠTÝLU --- */
 
-/*
- * NOVÝ ŠTÝL PRE OZNAČENÉHO ZAMESTNANCA
- * Používa rovnakú farbu ako .duty-column
- */
 .employee-item.reporting {
   border-color: var(--duty-color);
   box-shadow: 0 0 8px -2px var(--duty-color);
@@ -336,33 +514,33 @@ body {
   display: block;
   font-size: 0.8rem;
   opacity: 0.7;
+  color: var(--text-secondary); /* Jemnejšia farba */
 }
 
 /* SortableJS pomocné triedy */
 .sortable-ghost {
   opacity: 0.4;
-  background: var(--accent-color);
+  background: var(--accent-light);
 }
 .sortable-drag {
   opacity: 1 !important;
-  background: #4a6582;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  background: var(--gray-200);
+  box-shadow: var(--shadow-lg); /* Väčší tieň pri ťahaní */
 }
 
-/* NOVÉ: Vizuálny štýl pre cieľ presunutia v kalendári */
+/* Vizuálny štýl pre cieľ presunutia v kalendári */
 .calendar-drop-ghost {
   background: var(--accent-color);
   opacity: 0.5;
   padding: 10px;
   border-radius: 5px;
-  /* Zabezpečí, že ghost nezmizne, ak je bunka prázdna */
   min-height: 30px; 
   margin: 5px 0;
 }
 /* --- KONIEC D&D ŠTÝLOV --- */
 
 
-/* --- ŠTÝLY PRE MODÁLNE OKNO (BEZO ZMENY) --- */
+/* --- ŠTÝLY PRE MODÁLNE OKNO (UPRAVENÉ) --- */
 .modal-overlay {
   display: none; 
   position: fixed;
@@ -377,15 +555,15 @@ body {
 }
 
 .modal-content {
-  background-color: var(--bg-color-light);
-  color: var(--text-color);
+  background-color: var(--bg-elevated); /* Nové pozadie */
+  color: var(--text-primary); /* Nový text */
   margin: 5% auto;
-  padding: 20px;
-  border: 1px solid #888;
+  padding: 25px; /* Väčší padding */
+  border: 1px solid var(--border);
   width: 80%;
   max-width: 800px;
-  border-radius: var(--border-radius);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-xl); /* Väčší radius */
+  box-shadow: var(--shadow-xl); /* Väčší tieň */
   position: relative;
 }
 
@@ -399,11 +577,12 @@ body {
 
 .modal-header h2 {
   margin: 0;
-  color: var(--primary-color);
+  color: var(--text-primary);
+  font-family: var(--font-heading);
 }
 
 .modal-close {
-  color: var(--text-color);
+  color: var(--text-tertiary);
   font-size: 28px;
   font-weight: bold;
   background: none;
@@ -430,20 +609,21 @@ body {
 /* KONIEC MODÁLNEHO OKNA */
 
 
-/* --- NOTIFIKÁCIE (Toast) (BEZO ZMENY) --- */
+/* --- NOTIFIKÁCIE (Toast) (UPRAVENÉ) --- */
 .oznamenie {
   position: fixed;
   bottom: 20px;
   right: 20px;
   padding: 15px 20px;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-md); /* Nový radius */
   z-index: 1001;
-  box-shadow: var(--box-shadow);
+  box-shadow: var(--shadow-lg); /* Nový tieň */
   color: white;
   font-weight: 600;
   opacity: 0;
   transform: translateY(20px);
   transition: all 0.5s ease;
+  font-family: var(--font-body);
 }
 
 .oznamenie.show {
@@ -453,62 +633,55 @@ body {
 
 .oznamenie.success { background-color: #2ecc71; }
 .oznamenie.error { background-color: var(--destructive-color); }
-.oznamenie.info { background-color: var(--accent-color); }
+.oznamenie.info { background-color: var(--accent); } /* Nová info farba */
 
 /* --- SKRYTIE POSUVNÍKOV --- */
-
-/* Pre Prehliadače Firefox */
 .sidebar-layout,
 .main-content-layout,
-.people-container { /* ODSTRÁNENÉ: .groups-container */
+.people-container {
   scrollbar-width: none;
 }
-
-/* Pre Prehliadače WebKit (Chrome, Safari, Edge) */
 .sidebar-layout::-webkit-scrollbar,
 .main-content-layout::-webkit-scrollbar,
-.people-container::-webkit-scrollbar { /* ODSTRÁNENÉ: .groups-container */
+.people-container::-webkit-scrollbar {
   display: none;
 }
 
-/* --- KONIEC D&D ŠTÝLOV --- */
-
 /* NOVÉ ŠTÝLY PRE SKUPINOVÉ D&D */
 .available-group-header {
-  color: var(--accent-color);
-  /* UPRAVENÉ: margin-top je 0, keďže je v stĺpci */
+  color: var(--accent); /* Nová farba */
   margin-top: 0;
   margin-bottom: 5px;
   font-size: 0.9rem;
   font-weight: 600;
-  border-bottom: 1px solid var(--secondary-color);
+  border-bottom: 1px solid var(--border); /* Nový border */
   padding-bottom: 3px;
+  font-family: var(--font-heading);
 }
-/* ODSTRÁNENÉ: .available-group-header:first-of-type */
-
 
 .group-drag-item {
-  background-color: #4a6582; /* Tmavšie ako employee-item */
+  background-color: var(--gray-700); /* Tmavšia */
   color: var(--primary-color);
   padding: 10px;
-  margin-bottom: 10px; /* Väčšia medzera */
-  border-radius: 5px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--accent-color);
   cursor: grab;
   transition: var(--transition);
   font-size: 0.9rem;
   font-weight: bold;
   text-align: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .group-drag-item:hover {
   border-color: #fff;
-  background-color: #5a7b9e;
+  background-color: var(--gray-600);
 }
 
 /* --- ÚPRAVA ZAROVNANIA BUNIEK KALENDÁRA --- */
 .calendar-table th, .calendar-table td {
-  vertical-align: top; /* Zarovná obsah buniek hore */
+  vertical-align: top;
 }
 
 
@@ -520,80 +693,58 @@ body {
 }
 .duty-group-name {
   font-weight: bold;
-  color: var(--primary-color);
+  color: var(--text-primary); /* Tmavý text */
   font-size: 0.9rem;
   margin-bottom: 4px;
 }
 .employee-item-calendar {
-  background-color: var(--secondary-color);
-  color: var(--text-color);
+  background-color: var(--gray-100); /* Svetlé pozadie */
+  color: var(--text-secondary); /* Tmavší text */
   padding: 5px 8px;
   border-radius: 4px;
-  border: 2px solid var(--bg-color-light);
+  border: 2px solid var(--border); /* Svetlý border */
   cursor: pointer;
   font-size: 0.85rem;
   transition: var(--transition);
-  user-select: none; /* Zabráni označovaniu textu pri klikaní */
+  user-select: none;
 }
 .employee-item-calendar:hover {
   border-color: var(--accent-color);
+  background-color: var(--gray-200);
 }
 
-/* * Trieda .reporting (definovaná v .employee-item)
- * sa automaticky aplikuje aj tu
- */
 .employee-item-calendar.reporting {
   border-color: var(--duty-color);
   box-shadow: 0 0 8px -2px var(--duty-color);
+  background-color: #fffbeb; /* Jemne žltá pre hlásenie */
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
-/* * Pre dni, kedy služba trvá, ale skupina sa nevypisuje
- * (zobrazí sa pomlčka '—')
- */
 .duty-column {
-    color: var(--duty-color); /* Zdedí farbu */
+    color: var(--duty-color);
 }
-
-/* --- ODSTRÁNENÝ BLOK PRE POMLČKU --- */
-/*
-.duty-column:not(:has(.employee-item-calendar)):not(:empty) {
-    font-size: 1.2rem;
-    font-weight: bold;
-    text-align: center;
-    vertical-align: middle;
-    color: #6a829e; 
-    padding-top: 12px; 
-    padding-bottom: 12px;
-}
-*/
-/* --- KONIEC ODSTRÁNENIA --- */
-
 
 /* --- NOVÉ ŠTÝLY PRE "GHOST" RIADKY V KALENDÁRI --- */
 .ghost-row {
-  /* Vizuálne odlíšenie */
   opacity: 0.7;
 }
 
 .ghost-row td {
-  /* Odstránenie bežných čiar, aby to vyzeralo ako pokračovanie */
   border-bottom: none;
-  padding-top: 2px !important;  /* Použijeme !important na prebitie .calendar-table td */
+  padding-top: 2px !important;
   padding-bottom: 2px !important;
 }
 
-/* Skrytie pri tlači (pre istotu, ak by sa použila tlač prehliadača) */
 @media print {
   .ghost-row {
     display: none;
   }
 }
-/* --- KONIEC NOVÝCH GHOST ŠTÝLOV --- */
-
 
 /* --- NOVÝ ŠTÝL PRE VYBRANÚ SLUŽBU (SWAP) --- */
 .employee-item-calendar.swap-selected {
-  border-color: #e67e22; /* Oranžová farba pre swap */
+  border-color: #e67e22;
   box-shadow: 0 0 8px -2px #e67e22;
   border-width: 3px;
   animation: pulse-swap 1s infinite alternate;
@@ -602,10 +753,10 @@ body {
 @keyframes pulse-swap {
   from {
     box-shadow: 0 0 8px -2px #e67e22;
-    background-color: var(--secondary-color);
+    background-color: var(--gray-100);
   }
   to {
     box-shadow: 0 0 15px 0px #e67e22;
-    background-color: #3e5770;
+    background-color: #fbeee4;
   }
 }
