@@ -1,4 +1,4 @@
-// --- GLOBÁLNY STAV APLIKÁCIE ---
+// --- APLIKÁCIA ROZPIS POHOTOVOSTI ---
 
 // Konfigurácia načítaná z JSON
 let allEmployees = [];
@@ -155,7 +155,7 @@ async function loadConfig() {
  */
 function populateYearSelect() {
     const currentYear = new Date().getFullYear();
-    for (let year = currentYear - 10; year <= currentYear + 10; year++) {
+    for (let year = currentYear - 5; year <= currentYear + 5; year++) {
         const option = document.createElement('option');
         option.value = year;
         option.textContent = year;
