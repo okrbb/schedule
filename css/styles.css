@@ -27,7 +27,7 @@
     --gray-900: #111827;
     
     /* Semantic Colors */
-    --text-primary: var(--gray-900);
+    --text-primary: var(--accent);
     --text-secondary: var(--gray-600);
     --text-tertiary: var(--gray-500);
     
@@ -206,48 +206,18 @@ body {
   flex-direction: column; 
   justify-content: space-between;
   margin-bottom: 20px;
-  padding: 20px; /* Zvýšený padding */
+  padding: 20px; 
   
   /* --- APLIKOVANÝ NOVÝ DIZAJN PANELU --- */
-  background-color: var(--bg-elevated);
-  border-radius: var(--radius-xl); /* Väčší radius */
-  box-shadow: var(--shadow-lg); /* Jemnejší tieň */
-  border: 1px solid var(--border);
+  background-color: var(--glass-bg); /* <-- ZMENA */
+  border-radius: var(--radius-xl); 
+  box-shadow: var(--shadow-lg); 
+  border: 1px solid var(--glass-border); /* <-- ZMENA */
+  backdrop-filter: blur(10px); /* <-- PRIDANÉ */
   
   position: sticky;
   top: 0;
   z-index: 10;
-}
-
-.top-section h1 {
-  margin-top: 0;
-  color: var(--text-primary);
-  border-bottom: 2px solid var(--accent-color);
-  padding-bottom: 10px;
-  font-size: 1.8rem;
-  margin-bottom: 15px;
-  font-family: var(--font-heading);
-
-  /* --- PRIDANÉ: Pre zarovnanie loga --- */
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* --- NOVÉ: Logo na konci riadku H1 --- */
-.top-section h1::after {
-  content: ''; /* Povinné pre pseudo-element */
-  display: block;
-
-  /* --- Tu si upravte veľkosť loga podľa potreby --- */
-  width: 81px; 
-  height: 81px;
-  /* ---------------------------------------------- */
-
-  background-image: url('logo.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center right; /* Zarovná logo doprava */
 }
 
 .selectors {
@@ -298,22 +268,15 @@ body {
 }
 
 .shbtn--primary {
-  /* OPRAVA: Správny žlto-modrý gradient */
-  /* Smer 90deg je zľava doprava, presne ako na obrázku */
-  background-image: linear-gradient(90deg, var(--primary), var(--accent));
-  background-color: var(--primary); /* Fallback */
+  background-image: none;
+  background-color: var(--accent); /* Nová požadovaná farba */
   color: white;
-
-  /* Nastavenie pre jemný posun gradientu pri hover */
-  background-size: 150% auto;
-  background-position: left center;
-
-  /* Pridáme 'background-position' do transition, aby bol posun plynulý */
-  transition: var(--transition), background-position 0.3s ease;
+  transition: var(--transition);
 }
+
 .shbtn--primary:hover {
-  background-position: right center; /* Posunie gradient doprava */
-  /* Efekt zdvihnutia a tieňa je zdedený z .shbtn:hover */
+  filter: brightness(2.1); 
+  box-shadow: 0 0 12px 3px rgba(0, 51, 102, 0.4); 
 }
 
 .shbtn--destructive {
@@ -361,12 +324,13 @@ body {
 /* --- ŠTÝLY PRE KALENDÁR --- */
 .calendar-table {
   /* --- APLIKOVANÝ NOVÝ DIZAJN PANELU --- */
-  background-color: var(--bg-elevated);
+  background-color: var(--glass-bg); /* <-- ZMENA */
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border);
-  padding: 20px; /* Zvýšený padding */
+  border: 1px solid var(--glass-border); /* <-- ZMENA */
+  padding: 20px; 
   height: auto;
+  backdrop-filter: blur(10px); /* <-- PRIDANÉ */
 }
 
 .calendar-table h2 {
@@ -420,15 +384,16 @@ body {
 
 .container-people-dnd {
   /* --- APLIKOVANÝ NOVÝ DIZAJN PANELU --- */
-  background-color: var(--bg-elevated);
+  background-color: var(--glass-bg); /* <-- ZMENA */
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border); /* <-- ZMENA */
   padding: 20px;
   
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  backdrop-filter: blur(10px); /* <-- PRIDANÉ */
 }
 
 .container-people-dnd h3 {
@@ -759,4 +724,62 @@ body {
     box-shadow: 0 0 15px 0px #e67e22;
     background-color: #fbeee4;
   }
+}
+
+/* === 5. NOVÉ ŠTÝLY PRE HEADER A LOGO (z styles2.css) === */
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 10px;
+    margin-bottom: 15px; /* Upravená medzera z pôvodného h1 */
+}
+
+/* Toto nahrádza vymazaný .top-section h1 */
+h1 {
+    font-family: var(--font-heading);
+    color: var(--text-primary);
+    font-size: 1.8rem;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.header-logo-container {
+    width: 81px;  /* Veľkosť upravená podľa pôvodného .brand-icon */
+    height: 81px; /* Veľkosť upravená podľa pôvodného .brand-icon */
+    margin-left: 15px;
+    flex-shrink: 0; /* Zabráni zmenšeniu loga */
+    
+    background: transparent;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-smooth);
+}
+
+.header-logo-container:hover {
+    /* === ZMENA: Odstránenie gradientu a animácie z kontajnera === */
+    box-shadow: var(--shadow-sm); /* Ponecháme len jemný tieň na kontajneri */
+    background: transparent;
+    animation: none;
+}
+
+.header-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 8px;
+    position: relative; 
+    z-index: 2;        
+    /* ZMENA: Ponecháme len tranzíciu transformácie (rotácia/zväčšenie) */
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.header-logo-container:hover .header-logo-img {
+    /* Ponechané len zväčšenie a rotácia */
+    transform: scale(1.72) rotate(360deg);
+    /* Ponechaný jemný tieň pre hĺbku */
+    filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.3));
 }
