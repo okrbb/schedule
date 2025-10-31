@@ -275,7 +275,7 @@ body {
 }
 
 .shbtn--primary:hover {
-  filter: brightness(2.1); 
+  filter: brightness(1.8); 
   box-shadow: 0 0 12px 3px rgba(0, 51, 102, 0.4); 
 }
 
