@@ -1,17 +1,15 @@
-/* --- APLIKÁCIA ROZPIS POHOTOVOSTI --- */
+/* --- APLIKÁCIA ROZPIS POHOTOVOSTI - KANBAN BOARD ŠTÝL --- */
 
-/* === 1. CSS CUSTOM PROPERTIES (PREVZATÉ Z "CESTOVNÝ PRÍKAZ") === */
+/* === CSS CUSTOM PROPERTIES === */
 :root {
     /* Farby - Warm Modern Palette 2025 */
     --mocha: #6B5A4F;
     --mocha-light: #8B7766;
     --mocha-dark: #4A3F35;
-    
-    --primary: #F3B200; /* Hlavná farba (zlatá/žltá) */
-    --primary-dark: #4338CA;
-    --primary-light: #6366F1;
-    
-    --accent: #003366; /* Akcentová farba (tmavomodrá) */
+    --primary: #F3B200;
+    --primary-dark: #7d7d83;
+    --primary-light: #6366F1; /* <<< TÚTO FARBU POUŽIJEME PRE FIALOVÉ ORÁMOVANIE */
+    --accent: #003366;
     --accent-light: #F472B6;
     
     /* Neutrals */
@@ -30,18 +28,15 @@
     --text-primary: var(--accent);
     --text-secondary: var(--gray-600);
     --text-tertiary: var(--gray-500);
-    
-    --bg-body: #FAFAFA; /* Pozadie celej stránky (svetlé) */
-    --bg-panel: #FFFFFF; /* Pozadie panelov (biele) */
-    --bg-elevated: #FFFFFF; /* Pozadie pre "plávajúce" prvky */
-    
+    --bg-body: #FAFAFA;
+    --bg-panel: #FFFFFF;
+    --bg-elevated: #FFFFFF;
     --border: var(--gray-200);
     --border-focus: var(--primary-light);
-    
-    --destructive-color: #e74c3c;
+    --destructive-color: #e74c3c; /* <<< TÚTO FARBU POUŽIJEME PRE ČERVENÉ ORÁMOVANIE */
     --destructive-hover-color: #c0392b;
-    --duty-color: var(--primary); /* Farba pre hlásenia */
-
+    --duty-color: var(--primary);
+    
     /* Typography */
     --font-heading: 'Space Grotesk', -apple-system, system-ui, sans-serif;
     --font-body: 'Inter', -apple-system, system-ui, sans-serif;
@@ -52,19 +47,11 @@
     --radius-lg: 16px;
     --radius-xl: 24px;
     
-    /* Shadows - 2025 Soft & Layered */
-    --shadow-sm: 
-        0 1px 2px 0 rgba(0, 0, 0, 0.03),
-        0 1px 3px 0 rgba(0, 0, 0, 0.02);
-    --shadow-md: 
-        0 4px 6px -1px rgba(0, 0, 0, 0.06),
-        0 2px 4px -2px rgba(0, 0, 0, 0.04);
-    --shadow-lg: 
-        0 10px 15px -3px rgba(0, 0, 0, 0.08),
-        0 4px 6px -4px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 
-        0 20px 25px -5px rgba(0, 0, 0, 0.08),
-        0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     
     /* Glassmorphism */
     --glass-bg: rgba(255, 255, 255, 0.7);
@@ -74,21 +61,14 @@
     --transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
-    /* Mapovanie starých premenných na nové */
-    --primary-color: var(--gray-100); /* Svetlé pozadie pre prvky */
-    --secondary-color: var(--gray-800); /* Tmavé pozadie pre vnútorné časti */
-    --accent-color: var(--accent); /* Nová akcentová modrá */
-    --text-color: var(--gray-50); /* Svetlý text na tmavom pozadí */
-    --text-color-dark: var(--text-primary); /* Tmavý text na svetlom pozadí */
-    --bg-color-light: var(--bg-panel); /* Hlavná farba panelov */
-    --border-radius: var(--radius-md); /* Zjednotený radius */
-    --box-shadow: var(--shadow-md);
-    --transition: var(--transition-base);
-    --hover-color: var(--accent-light);
-    --font-family: var(--font-body);
+    /* Kanban Specific */
+    --kanban-column-width: 243px;
+    --kanban-gap: 16px;
+    --card-bg: var(--bg-elevated);
+    --card-shadow: var(--shadow-md);
 }
 
-/* === 3. ANIMATED BACKGROUND ORBS (PREVZATÉ) === */
+/* === ANIMATED BACKGROUND === */
 .background-orbs {
     position: fixed;
     top: 0;
@@ -137,649 +117,620 @@
 }
 
 @keyframes float {
-    0%, 100% {
-        transform: translate(0, 0) scale(1);
-    }
-    33% {
-        transform: translate(30px, -30px) scale(1.1);
-    }
-    66% {
-        transform: translate(-20px, 20px) scale(0.9);
-    }
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -30px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
 }
 
+/* === BASE STYLES === */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-/* === Základné štýly === */
 body {
-  font-family: var(--font-family);
-  margin: 0;
-  padding: 0;
-  background-color: transparent; /* <-- TOTO JE OPRAVA */
-  color: var(--text-color-dark); /* POUŽITÝ NOVÝ TEXT */
-  line-height: 1.6;
+    font-family: var(--font-body);
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
 }
 
-/* --- NOVÉ HLAVNÉ ROZLOŽENIE --- */
-.container {
-  display: grid;
-  grid-template-columns: 630px 1fr;
-  height: 100vh;
-  margin: 0;
-  padding: 20px; /* PRIDANÉ ODSADENIE OKOLO CELEJ APLIKÁCIE */
-  gap: 20px; /* PRIDANÁ MEDZERA MEDZI STĹPCAMI */
-  max-width: none;
-  box-sizing: border-box; /* Zabezpečí správny výpočet veľkosti */
+/* === KANBAN CONTAINER === */
+.kanban-container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: auto 1fr; /* ZMENA: Riadky pre top-section a kanban-board */
+    height: 100vh;
+    padding: 20px;
+    gap: 20px;
 }
 
-.sidebar-layout {
-  height: calc(100vh - 40px); /* (100vh - padding) */
-  overflow-y: auto;
-  padding: 0; /* Vnútorný padding už má .calendar-table */
-  border-radius: var(--radius-xl); /* <-- PRIDANÉ PRE OPRAVU ROHOV */
-  
-  /* ODSTRÁNENÉ PÔVODNÉ ŠTÝLY */
-  /* background-color: var(--bg-color-light); */
-  /* border-right: 1px solid var(--secondary-color); */
-}
-
-.main-content-layout {
-  height: calc(100vh - 40px); /* (100vh - padding) */
-  overflow-y: auto;
-  padding: 0; /* Padding je riešený vnútorne */
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-xl); /* <-- PRIDANÉ PRE OPRAVU ROHOV */
-}
-
-.dnd-wrapper {
-  display: grid;
-  grid-template-columns: 1fr; 
-  gap: 20px;
-  flex-grow: 1;
-  min-height: 0;
-}
-/* --- KONIEC HLAVNÉHO ROZLOŽENIA --- */
-
-
+/* === TOP SECTION === */
 .top-section {
-  display: flex;
-  flex-direction: column; 
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding: 20px; 
-  
-  /* --- APLIKOVANÝ NOVÝ DIZAJN PANELU --- */
-  background-color: var(--glass-bg); /* <-- ZMENA */
-  border-radius: var(--radius-xl); 
-  box-shadow: var(--shadow-lg); 
-  border: 1px solid var(--glass-border); /* <-- ZMENA */
-  backdrop-filter: blur(10px); /* <-- PRIDANÉ */
-  
-  position: sticky;
-  top: 0;
-  z-index: 10;
+    /* ZMENA: Odstránené grid-column: 1 / -1; */
+    /* ZMENA: Odstránené position: sticky a top: 20px */
+    grid-column: 2; /* ZMENA: Umiestnenie v druhom stĺpci */
+    grid-row: 1; /* ZMENA: Umiestnenie v prvom riadku */
+    background-color: var(--glass-bg);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    padding: 25px;
+    z-index: 100;
 }
 
-.selectors {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.selMonth, .selYear {
-  padding: 10px;
-  border-radius: var(--radius-md); /* Zjednotený radius */
-  border: 1px solid var(--border); /* Nový border */
-  transition: var(--transition);
-  font-family: var(--font-family);
-  background: var(--gray-50); /* Svetlé pozadie */
-  color: var(--text-primary);
-}
-
-.selMonth:hover, .selYear:hover {
-  border-color: var(--accent-color);
-}
-.selMonth:focus, .selYear:focus {
-  outline: 2px solid var(--border-focus);
-  border-color: transparent;
-}
-
-/* --- ŠTÝLY TLAČIDIEL (UPRAVENÉ PRE NOVÝ DIZAJN) --- */
-.shbtn {
-  border: none;
-  padding: 10px 15px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: var(--transition);
-  font-weight: 600;
-  font-family: var(--font-body);
-  box-shadow: var(--shadow-sm);
-
-  /* --- NOVÉ: Pre zarovnanie ikony a textu --- */
-  display: inline-flex; /* Umožní flexbox layout */
-  align-items: center; /* Vertikálne zarovná na stred */
-  justify-content: center; /* Horizontálne zarovná na stred (ak je dostatok miesta) */
-  gap: 8px; /* Medzera medzi ikonou a textom */
-}
-
-.shbtn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md); /* Výraznejší tieň */
-}
-
-.shbtn--primary {
-  background-image: none;
-  background-color: var(--accent); /* Nová požadovaná farba */
-  color: white;
-  transition: var(--transition);
-}
-
-.shbtn--primary:hover {
-  filter: brightness(1.8); 
-  box-shadow: 0 0 12px 3px rgba(0, 51, 102, 0.4); 
-}
-
-.shbtn--destructive {
-  background-color: transparent;
-  color: var(--destructive-color);
-  border: 1px solid var(--destructive-color);
-}
-.shbtn--destructive:hover {
-  background-color: var(--destructive-color);
-  color: white;
-  border-color: var(--destructive-color);
-}
-/* --- KONIEC ŠTÝLOV TLAČIDIEL --- */
-
-
-/* --- RESPONZÍVNE SPRÁVANIE PRE NOVÉ ROZLOŽENIE --- */
-@media (max-width: 1024px) {
-  .container {
-    grid-template-columns: 1fr;
-    height: auto;
-    padding: 15px; /* Menší padding na mobile */
-    gap: 15px;
-  }
-  .sidebar-layout, .main-content-layout {
-    height: auto;
-    overflow-y: visible;
-  }
-}
-
-@media (max-width: 768px) {
-  .top-section, .selectors {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .selMonth, .selYear, .shbtn {
-    width: 100%;
-  }
-  .available-people-grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-/* --- KONIEC RESPONZIVITY --- */
-
-
-/* --- ŠTÝLY PRE KALENDÁR --- */
-.calendar-table {
-  /* --- APLIKOVANÝ NOVÝ DIZAJN PANELU --- */
-  background-color: var(--glass-bg); /* <-- ZMENA */
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--glass-border); /* <-- ZMENA */
-  padding: 20px; 
-  height: auto;
-  backdrop-filter: blur(10px); /* <-- PRIDANÉ */
-}
-
-.calendar-table h2 {
-  color: var(--text-primary); /* Nová farba textu */
-  margin-top: 0;
-  border-bottom: 2px solid var(--accent-color);
-  padding-bottom: 10px;
-  font-family: var(--font-heading);
-}
-
-/* Štýly pre tabuľku v kalendári */
-.calendar-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.calendar-table th, .calendar-table td {
-  padding: 8px;
-  text-align: left;
-  border-bottom: 1px solid var(--border); /* Nový border */
-  color: var(--text-secondary); /* Jemnejšia farba textu */
-}
-.calendar-table th {
-  color: var(--accent); /* Nová akcentová */
-  font-family: var(--font-heading);
-}
-.new-week {
-  border-top: 2px solid var(--accent-color);
-}
-.duty-column {
-  font-weight: bold;
-  color: var(--duty-color);
-  width: 100px;
-}
-
-.week-column { width: 10%; }
-.day-column { width: 15%; }
-.date-column { width: 30%; }
-.duty-column-header { width: 45%; }
-/* --- KONIEC ŠTÝLOV KALENDÁRA --- */
-
-
-/* --- ŠTÝLY PRE DRAG & DROP (UPRAVENÉ) --- */
-.people-container {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  height: 100%;
-  overflow-y: auto;
-  border-radius: var(--radius-xl); /* <-- PRIDANÉ PRE OPRAVU ROHOV */
-}
-
-.container-people-dnd {
-  /* --- APLIKOVANÝ NOVÝ DIZAJN PANELU --- */
-  background-color: var(--glass-bg); /* <-- ZMENA */
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--glass-border); /* <-- ZMENA */
-  padding: 20px;
-  
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  backdrop-filter: blur(10px); /* <-- PRIDANÉ */
-}
-
-.container-people-dnd h3 {
-  color: var(--text-primary); /* Nová farba textu */
-  margin-top: 0;
-  border-bottom: 2px solid var(--accent-color);
-  padding-bottom: 10px;
-  font-family: var(--font-heading);
-}
-
-.dnd-hint {
-  font-size: 0.8rem;
-  color: var(--text-tertiary); /* Jemnejšia farba */
-  opacity: 1;
-  margin-top: -10px;
-}
-
-/* --- NOVÉ ŠTÝLY PRE 3 STĹPCE ZAMESTNANCOV --- */
-.available-people-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 15px;
-  flex-grow: 1;
-}
-
-.available-people-grid > div {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.people-list-dnd {
-  background-color: var(--gray-50); /* Svetlé pozadie pre D&D zónu */
-  border-radius: var(--radius-md);
-  padding: 10px;
-  transition: var(--transition);
-  flex-grow: 1;
-  min-height: 150px;
-  border: 1px dashed var(--border); /* Čiarkovaný okraj */
-}
-/* --- KONIEC NOVÝCH ŠTÝLOV --- */
-
-
-.people-list-dnd:hover {
-  background-color: var(--gray-100);
-  border-color: var(--accent);
-}
-
-.employee-item {
-  background-color: var(--bg-elevated); /* Biela */
-  color: var(--text-primary); /* Tmavý text */
-  padding: 10px;
-  margin-bottom: 5px;
-  border-radius: var(--radius-sm); /* Menší radius */
-  border: 2px solid var(--border); /* Svetlý border */
-  cursor: pointer; 
-  transition: var(--transition);
-  font-size: 0.9rem;
-  box-shadow: var(--shadow-sm); /* Jemný tieň */
-}
-
-.employee-item:last-child {
-  margin-bottom: 0;
-}
-
-.employee-item:hover {
-  border-color: var(--accent-color);
-  background-color: var(--gray-50);
-  box-shadow: var(--shadow-md);
-}
-
-.employee-item.is-assigned {
-  border-color: var(--destructive-color);
-  opacity: 0.7; /* Znížená viditeľnosť */
-}
-
-.employee-item.reporting {
-  border-color: var(--duty-color);
-  box-shadow: 0 0 8px -2px var(--duty-color);
-}
-
-.employee-item .phone {
-  display: block;
-  font-size: 0.8rem;
-  opacity: 0.7;
-  color: var(--text-secondary); /* Jemnejšia farba */
-}
-
-/* SortableJS pomocné triedy */
-.sortable-ghost {
-  opacity: 0.4;
-  background: var(--accent-light);
-}
-.sortable-drag {
-  opacity: 1 !important;
-  background: var(--gray-200);
-  box-shadow: var(--shadow-lg); /* Väčší tieň pri ťahaní */
-}
-
-/* Vizuálny štýl pre cieľ presunutia v kalendári */
-.calendar-drop-ghost {
-  background: var(--accent-color);
-  opacity: 0.5;
-  padding: 10px;
-  border-radius: 5px;
-  min-height: 30px; 
-  margin: 5px 0;
-}
-/* --- KONIEC D&D ŠTÝLOV --- */
-
-
-/* --- ŠTÝLY PRE MODÁLNE OKNO (UPRAVENÉ) --- */
-.modal-overlay {
-  display: none; 
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(5px);
-}
-
-.modal-content {
-  background-color: var(--bg-elevated); /* Nové pozadie */
-  color: var(--text-primary); /* Nový text */
-  margin: 5% auto;
-  padding: 25px; /* Väčší padding */
-  border: 1px solid var(--border);
-  width: 80%;
-  max-width: 800px;
-  border-radius: var(--radius-xl); /* Väčší radius */
-  box-shadow: var(--shadow-xl); /* Väčší tieň */
-  position: relative;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 2px solid var(--accent-color);
-  padding-bottom: 10px;
-}
-
-.modal-header h2 {
-  margin: 0;
-  color: var(--text-primary);
-  font-family: var(--font-heading);
-}
-
-.modal-close {
-  color: var(--text-tertiary);
-  font-size: 28px;
-  font-weight: bold;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0 10px;
-}
-
-.modal-close:hover,
-.modal-close:focus {
-  color: var(--destructive-color);
-  text-decoration: none;
-  outline: none;
-}
-
-.modal-body {
-  margin-top: 20px;
-}
-
-.modal-footer {
-  margin-top: 20px;
-  text-align: right;
-}
-/* KONIEC MODÁLNEHO OKNA */
-
-
-/* --- NOTIFIKÁCIE (Toast) (UPRAVENÉ) --- */
-.oznamenie {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 15px 20px;
-  border-radius: var(--radius-md); /* Nový radius */
-  z-index: 1001;
-  box-shadow: var(--shadow-lg); /* Nový tieň */
-  color: white;
-  font-weight: 600;
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.5s ease;
-  font-family: var(--font-body);
-}
-
-.oznamenie.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.oznamenie.success { background-color: #2ecc71; }
-.oznamenie.error { background-color: var(--destructive-color); }
-.oznamenie.info { background-color: var(--accent); } /* Nová info farba */
-
-/* --- SKRYTIE POSUVNÍKOV --- */
-.sidebar-layout,
-.main-content-layout,
-.people-container {
-  scrollbar-width: none;
-}
-.sidebar-layout::-webkit-scrollbar,
-.main-content-layout::-webkit-scrollbar,
-.people-container::-webkit-scrollbar {
-  display: none;
-}
-
-/* NOVÉ ŠTÝLY PRE SKUPINOVÉ D&D */
-.available-group-header {
-  color: var(--accent); /* Nová farba */
-  margin-top: 0;
-  margin-bottom: 5px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  border-bottom: 1px solid var(--border); /* Nový border */
-  padding-bottom: 3px;
-  font-family: var(--font-heading);
-}
-
-.group-drag-item {
-  background-color: var(--gray-700); /* Tmavšia */
-  color: var(--primary-color);
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--accent-color);
-  cursor: grab;
-  transition: var(--transition);
-  font-size: 0.9rem;
-  font-weight: bold;
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-}
-
-.group-drag-item:hover {
-  border-color: #fff;
-  background-color: var(--gray-600);
-}
-
-/* --- ÚPRAVA ZAROVNANIA BUNIEK KALENDÁRA --- */
-.calendar-table th, .calendar-table td {
-  vertical-align: top;
-}
-
-
-/* --- NOVÉ ŠTÝLY PRE SKUPINY V KALENDÁRI --- */
-.duty-group-container {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.duty-group-name {
-  font-weight: bold;
-  color: var(--text-primary); /* Tmavý text */
-  font-size: 0.9rem;
-  margin-bottom: 4px;
-}
-.employee-item-calendar {
-  background-color: var(--gray-100); /* Svetlé pozadie */
-  color: var(--text-secondary); /* Tmavší text */
-  padding: 5px 8px;
-  border-radius: 4px;
-  border: 2px solid var(--border); /* Svetlý border */
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: var(--transition);
-  user-select: none;
-}
-.employee-item-calendar:hover {
-  border-color: var(--accent-color);
-  background-color: var(--gray-200);
-}
-
-.employee-item-calendar.reporting {
-  border-color: var(--duty-color);
-  box-shadow: 0 0 8px -2px var(--duty-color);
-  background-color: #fffbeb; /* Jemne žltá pre hlásenie */
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.duty-column {
-    color: var(--duty-color);
-}
-
-/* --- NOVÉ ŠTÝLY PRE "GHOST" RIADKY V KALENDÁRI --- */
-.ghost-row {
-  opacity: 0.7;
-}
-
-.ghost-row td {
-  border-bottom: none;
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
-}
-
-@media print {
-  .ghost-row {
-    display: none;
-  }
-}
-
-/* --- NOVÝ ŠTÝL PRE VYBRANÚ SLUŽBU (SWAP) --- */
-.employee-item-calendar.swap-selected {
-  border-color: #e67e22;
-  box-shadow: 0 0 8px -2px #e67e22;
-  border-width: 3px;
-  animation: pulse-swap 1s infinite alternate;
-}
-
-@keyframes pulse-swap {
-  from {
-    box-shadow: 0 0 8px -2px #e67e22;
-    background-color: var(--gray-100);
-  }
-  to {
-    box-shadow: 0 0 15px 0px #e67e22;
-    background-color: #fbeee4;
-  }
-}
-
-/* === 5. NOVÉ ŠTÝLY PRE HEADER A LOGO (z styles2.css) === */
 .header-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid var(--accent-color);
-    padding-bottom: 10px;
-    margin-bottom: 15px; /* Upravená medzera z pôvodného h1 */
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
 }
 
-/* Toto nahrádza vymazaný .top-section h1 */
 h1 {
     font-family: var(--font-heading);
     color: var(--text-primary);
-    font-size: 1.8rem;
-    margin-top: 0;
-    margin-bottom: 0;
+    font-size: 1.6rem;
+    margin: 0;
 }
 
 .header-logo-container {
-    width: 81px;  /* Veľkosť upravená podľa pôvodného .brand-icon */
-    height: 81px; /* Veľkosť upravená podľa pôvodného .brand-icon */
-    margin-left: 15px;
-    flex-shrink: 0; /* Zabráni zmenšeniu loga */
-    
-    background: transparent;
-    border-radius: var(--radius-md);
+    width: 70px;
+    height: 70px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all var(--transition-smooth);
-}
-
-.header-logo-container:hover {
-    /* === ZMENA: Odstránenie gradientu a animácie z kontajnera === */
-    box-shadow: var(--shadow-sm); /* Ponecháme len jemný tieň na kontajneri */
-    background: transparent;
-    animation: none;
+    transition: transform var(--transition-smooth);
 }
 
 .header-logo-img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    padding: 8px;
-    position: relative; 
-    z-index: 2;        
-    /* ZMENA: Ponecháme len tranzíciu transformácie (rotácia/zväčšenie) */
     transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .header-logo-container:hover .header-logo-img {
-    /* Ponechané len zväčšenie a rotácia */
-    transform: scale(1.72) rotate(360deg);
-    /* Ponechaný jemný tieň pre hĺbku */
+    transform: scale(1.5) rotate(360deg);
     filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.3));
+}
+
+.controls-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.selectors {
+    display: flex;
+    gap: 10px;
+}
+
+.selMonth, .selYear {
+    padding: 10px 15px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--gray-50);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    transition: var(--transition-base);
+    cursor: pointer;
+}
+
+.selMonth:hover, .selYear:hover {
+    border-color: var(--accent);
+}
+
+.selMonth:focus, .selYear:focus {
+    outline: 2px solid var(--border-focus);
+    border-color: transparent;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* === BUTTONS === */
+.shbtn {
+    border: none;
+    padding: 10px 18px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-base);
+    font-weight: 600;
+    font-family: var(--font-body);
+    font-size: 14px;
+    box-shadow: var(--shadow-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.shbtn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.shbtn--primary {
+    background-color: var(--accent);
+    color: white;
+}
+
+.shbtn--primary:hover {
+    filter: brightness(1.3);
+    box-shadow: 0 0 12px 3px rgba(0, 51, 102, 0.4);
+}
+
+.shbtn--destructive {
+    background-color: transparent;
+    color: var(--destructive-color);
+    border: 1px solid var(--destructive-color);
+}
+
+.shbtn--destructive:hover {
+    background-color: var(--destructive-color);
+    color: white;
+}
+
+/* === GROUPS SIDEBAR === */
+.groups-sidebar {
+    grid-column: 1; /* ZMENA: Umiestnenie v prvom stĺpci */
+    grid-row: 1 / 3; /* ZMENA: Rozpätie cez oba riadky (1 a 2) */
+    background-color: var(--glass-bg);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    padding: 25px;
+    overflow-y: auto;
+    /* ZMENA: Odstránená max-height, výška je riadená gridom */
+}
+
+.groups-sidebar h3 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-family: var(--font-heading);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 10px;
+}
+
+.groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.group-card {
+    background: linear-gradient(135deg, var(--accent), var(--primary-dark));
+    color: white;
+    padding: 15px;
+    border-radius: var(--radius-md);
+    cursor: grab;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-base);
+    user-select: none;
+}
+
+.group-card:hover {
+    transform: translateX(5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.group-card:active {
+    cursor: grabbing;
+}
+
+.group-card-header {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.group-card-members {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+.help-text {
+    margin-top: 20px;
+    padding: 12px;
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* === KANBAN BOARD === */
+.kanban-board {
+    grid-column: 2; /* ZMENA: Umiestnenie v druhom stĺpci */
+    grid-row: 2; /* ZMENA: Umiestnenie v druhom riadku */
+    display: flex;
+    gap: var(--kanban-gap);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 20px;
+    background-color: var(--glass-bg);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    /* ZMENA: Odstránená max-height, výška je riadená gridom */
+    min-height: 0; /* ZMENA: Pridané pre správne správanie v grid-e */
+}
+
+/* === WEEK COLUMN === */
+.week-column {
+    min-width: var(--kanban-column-width);
+    max-width: var(--kanban-column-width);
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    transition: var(--transition-base);
+}
+
+.week-column:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.week-column-header {
+    padding: 15px;
+    background: linear-gradient(135deg, var(--accent), var(--primary-dark));
+    color: white;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    font-weight: 700;
+    font-size: 1rem;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.week-number {
+    font-size: 1.2rem;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.week-dates {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    font-weight: 400;
+}
+
+.week-column-body {
+    padding: 15px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 150px;
+    background: var(--gray-50);
+}
+
+/* EMPTY STATE */
+.week-column-body.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.week-column-body.empty::before {
+    content: '📋 Presuňte sem skupinu';
+}
+
+/* === DUTY CARD (inside week column) === */
+.duty-card {
+    background: white;
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-base);
+    border-left: 4px solid var(--primary);
+}
+
+.duty-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.duty-card:last-child {
+    margin-bottom: 0;
+}
+
+.duty-card-header {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.duty-card-header::before {
+    content: '👤';
+}
+
+.duty-card-employees {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.employee-badge {
+    background: var(--gray-100);
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;  /* ZMENA: Usporiada prvky pod seba */
+    align-items: flex-start; /* ZMENA: Zarovná oba riadky doľava */
+    gap: 2px;                /* ZMENA: Pridá malú medzeru medzi meno a telefón */
+    cursor: pointer;
+    transition: var(--transition-base);
+    border: 2px solid transparent;
+}
+
+.employee-badge:hover {
+    background: var(--gray-200);
+    border-color: var(--accent);
+}
+
+.employee-badge.reporting {
+    background: #fffbeb;
+    border-color: var(--duty-color);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.employee-badge.reporting::after {
+    content: '📞';
+    margin-left: 5px;
+}
+
+/* === ZMENA: Orámovanie pre VÝMENU (fialové) === */
+.employee-badge.swap-selected {
+    border-color: var(--primary-light); /* ZMENA NA FIALOVÚ */
+    border-width: 3px;
+    animation: pulse-swap 1s infinite alternate;
+}
+
+@keyframes pulse-swap {
+    from {
+        box-shadow: 0 0 8px -2px var(--primary-light); /* ZMENA NA FIALOVÚ */
+        background-color: var(--gray-100);
+    }
+    to {
+        box-shadow: 0 0 15px 0px var(--primary-light); /* ZMENA NA FIALOVÚ */
+        background-color: #f0f0ff; /* ZMENA NA JEMNE FIALOVÚ */
+    }
+}
+
+/* === NOVÉ: Orámovanie pre NAHRADENIE (červené) === */
+.employee-badge.replace-selected {
+    border-color: var(--destructive-color);
+    border-width: 3px;
+    animation: pulse-replace 1s infinite alternate;
+}
+
+@keyframes pulse-replace {
+    from {
+        box-shadow: 0 0 8px -2px var(--destructive-color);
+        background-color: var(--gray-100);
+    }
+    to {
+        box-shadow: 0 0 15px 0px var(--destructive-color);
+        background-color: #fbeee4;
+    }
+}
+
+
+/* === DRAG & DROP STATES === */
+.sortable-ghost {
+    opacity: 0.4;
+    background: var(--accent-light);
+}
+
+.sortable-drag {
+    opacity: 1 !important;
+    background: var(--gray-200);
+    box-shadow: var(--shadow-xl);
+    transform: rotate(3deg);
+}
+
+/* === MODAL === */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: var(--bg-elevated);
+    margin: 5% auto;
+    padding: 25px;
+    border: 1px solid var(--border);
+    width: 85%;
+    max-width: 1000px;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+}
+
+.modal-close {
+    color: var(--text-tertiary);
+    font-size: 28px;
+    font-weight: bold;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 10px;
+    transition: var(--transition-base);
+}
+
+.modal-close:hover {
+    color: var(--destructive-color);
+}
+
+.modal-body {
+    margin-top: 20px;
+}
+
+.modal-footer {
+    margin-top: 20px;
+    text-align: right;
+}
+
+/* === NOTIFICATIONS === */
+.oznamenie {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: var(--radius-md);
+    z-index: 1001;
+    box-shadow: var(--shadow-lg);
+    color: white;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
+    font-family: var(--font-body);
+}
+
+.oznamenie.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.oznamenie.success { background-color: #2ecc71; }
+.oznamenie.error { background-color: var(--destructive-color); }
+.oznamenie.info { background-color: var(--accent); }
+
+/* === SCROLLBAR STYLING === */
+.kanban-board::-webkit-scrollbar,
+.groups-sidebar::-webkit-scrollbar,
+.week-column-body::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.kanban-board::-webkit-scrollbar-track,
+.groups-sidebar::-webkit-scrollbar-track,
+.week-column-body::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+}
+
+.kanban-board::-webkit-scrollbar-thumb,
+.groups-sidebar::-webkit-scrollbar-thumb,
+.week-column-body::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: var(--radius-sm);
+}
+
+.kanban-board::-webkit-scrollbar-thumb:hover,
+.groups-sidebar::-webkit-scrollbar-thumb:hover,
+.week-column-body::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 1200px) {
+    .kanban-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr; /* Pôvodné mobilné rozloženie */
+    }
+
+    /* ZMENA: Vrátenie pravidiel pre mobilné zobrazenie */
+    .top-section {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    
+    .groups-sidebar {
+        grid-column: 1;
+        grid-row: 2;
+        max-height: 300px;
+    }
+
+    /* ZMENA: Vrátenie pravidiel pre mobilné zobrazenie */
+    .kanban-board {
+        grid-column: 1;
+        grid-row: 3;
+    }
+    
+    .controls-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .action-buttons {
+        width: 100%;
+        justify-content: stretch;
+    }
+    
+    .shbtn {
+        flex: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .kanban-container {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    .top-section {
+        padding: 15px;
+    }
+    
+    h1 {
+        font-size: 1.4rem;
+    }
+    
+    .week-column {
+        min-width: 250px;
+    }
 }
